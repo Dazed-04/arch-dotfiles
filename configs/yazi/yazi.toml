@@ -44,34 +44,32 @@ prepend_previewers = [
 # For opening files with application #
 
 [opener]
-text_opener = [{ run = 'nvim "$@"', block = true, desc = "Edit in Nvim" }]
+text_opener = [{ run = 'nvim %s', block = true, desc = "Edit in Nvim" }]
 
 # Text opener for nvim
 text_opener_float = [
-  { run = 'kitty --class yazi-nvim nvim "$@"', orphan = true, desc = "Edit in Nvim-float" },
+  { run = 'kitty --class yazi-nvim nvim %s', orphan = true, desc = "Edit in Nvim-float" },
 ]
 
 # PDF opener for Zathura
-pdf_opener = [{ run = 'zathura "$@"', orphan = true, desc = "View PDF" }]
+pdf_opener = [{ run = 'zathura %s', orphan = true, desc = "View PDF" }]
 
 # Uses imv to open image
-image_opener = [{ run = 'imv "$@"', orphan = true, desc = "Open in image" }]
+image_opener = [{ run = 'imv %s', orphan = true, desc = "Open image" }]
 
 # Uses mpv to open video 
 video_opener = [
-  { run = 'mpv --autofit-larger=70%x70% --force-window=yes "$@"', orphan = true, desc = "Open Video" },
+  { run = 'mpv --autofit-larger=70%x70% --force-window=yes %s', orphan = true, desc = "Open Video" },
 ]
 
 # Play using rmpc
-music_opener = [{ run = '''
-        # 1. Update MPC Queue
-        mpc clear; 
-        for f in "$@"; do mpc add "${f#$HOME/Music/}"; done; 
-        mpc play 1
-        
-        # 2. Hyprland Workspace Logic
-        ~/.config/hypr/scripts/toggleMusic.sh 
-    ''', desc = "Play and Switch to Music" }]
+music_opener = [
+  { run = '/home/Dazed/.local/bin/myScripts/yazi/play-music.sh %s', desc = "Play Music" },
+]
+
+music_queue = [
+  { run = '/home/Dazed/.local/bin/myScripts/yazi/queue-music.sh %s', desc = "Add Queue" },
+]
 
 [open]
 prepend_rules = [
@@ -79,15 +77,21 @@ prepend_rules = [
   { mime = "application/pdf", use = "pdf_opener" },
   { url = "*.pdf", use = "pdf_opener" },
 
-  # 2. Media  
-  { url = "*.{mp3,flac,wav,m4a,ogg,opus}", use = "music_opener" },
+  # 2. Media
+  { url = "*.{mp3,flac,wav,m4a,ogg,opus}", use = [
+    "music_opener",
+    "music_queue",
+  ] },
   { url = "*.gif", use = [
     "video_opener",
     "image_opener",
   ] },
   { mime = "image/*", use = "image_opener" },
   { mime = "video/*", use = "video_opener" },
-  { mime = "audio/*", use = "music_opener" },
+  { mime = "audio/*", use = [
+    "music_opener",
+    "music_queue",
+  ] },
 
   # 3. Text and Configs (Fallback)
   { mime = "text/*", use = [

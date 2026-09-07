@@ -16,13 +16,14 @@ local function line_with_icon(line)
 
   local tree_prefix = get_tree_prefix(line)
   local url = line:sub(#tree_prefix + 1)
-  local icon = File({
+  local file = File({
     url = Url(url),
     cha = Cha {
       mode = tonumber(url:sub(-1) == "/" and "40700" or "100644", 8),
       kind = url:sub(-1) == "/" and 1 or 0, -- For Yazi <25.9.x compatibility
     }
-  }):icon()
+  })
+  local icon = th.icon:match(file)
 
   if icon then
     line =  ui.Line { tree_prefix, ui.Span(icon.text .. " "):style(icon.style), url }
@@ -122,8 +123,8 @@ local get_compression_target = ya.sync(function()
     end
   else
     default_name = tab.current.cwd.name
-    for _, url in pairs(tab.selected) do
-      table.insert(paths, tostring(url))
+    for _, file in pairs(tab.selected) do
+      table.insert(paths, tostring(file.url))
     end
     -- The compression targets are aquired, now unselect them
     ya.emit("escape", {})

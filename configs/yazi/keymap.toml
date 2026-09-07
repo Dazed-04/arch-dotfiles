@@ -15,32 +15,17 @@ on = "p"
 run = "plugin smart-paste"
 desc = "Paste into the hovered directory or CWD"
 
-### Add song to MPD Queue ###
+### Add song to Queue ###
 [[mgr.prepend_keymap]]
-on = "M" 
-run = [
-  'shell -- for f in "$@"; do mpc -h $HOME/.config/mpd/socket add "$f"; done'
-]
+on = "A"
+run = ['shell -- /home/Dazed/.local/bin/myScripts/yazi/queue-music.sh %s']
 desc = "Add selected files to music queue"
 
 ### Play Next ###
 [[mgr.prepend_keymap]]
-on = "A" 
-run = [
-  'shell -- for f in "$@"; do mpc -h $HOME/.config/mpd/socket insert "$f"; done'
-]
+on = "N"
+run = ['shell -- /home/Dazed/.local/bin/myScripts/yazi/insert-music.sh %s']
 desc = "Play Next"
-
-### Opem rmpc UI only ###
-[[mgr.prepend_keymap]]
-on = "R"
-run = 'shell rmpc --block'
-desc = "Open rmpc UI"
-
-[[mgr.prepend_keymap]]
-on = "A"
-run = "open --use=queue_next"
-desc = "Queue selected songs to play next"
 
 ### Smart-Tab ###
 [[mgr.prepend_keymap]]
@@ -79,7 +64,7 @@ run = "plugin confirm-quit"
 ### Drag and drop ###
 [[mgr.prepend_keymap]]
 on = "<C-n>"
-run = 'shell -- dragon-drop -x -i -T "$1"'
+run = "shell 'dragon-drop -x -i -T \"$@\"' -- %s"
 
 ### Close input be once Esc press ###
 [[input.prepend_keymap]]
@@ -96,9 +81,5 @@ desc = "Maximize or restore the preview pane"
 ### Shift + Space = Deselect and move up ###
 [[mgr.prepend_keymap]]
 on = "<A-Space>"
-run = [
-  "toggle",
-  "arrow -1"
-]
+run = ["toggle", "arrow -1"]
 desc = "Deselect and move up"
-

@@ -13,7 +13,7 @@ This is a Yazi plugin for previewing media files. The preview shows thumbnail
 using `ffmpeg` if available and media metadata using `mediainfo`.
 
 > [!IMPORTANT]
-> Minimum version: yazi v26.1.22.
+> Minimum version: yazi v26.5.6.
 > Check it via command `yazi --debug`
 
 ## Preview
@@ -71,21 +71,15 @@ Config folder for each OS: https://yazi-rs.github.io/docs/configuration/overview
 
 Create `.../yazi/yazi.toml` and add:
 
+`prepend_preloaders` are optional, but highly recommended for faster preview.
+
 ```toml
 [plugin]
   prepend_preloaders = [
     # Replace magick, image, video with mediainfo
     { mime = "{audio,video,image}/*", run = "mediainfo" },
-    { mime = "application/subrip", run = "mediainfo" },
-
-    # Adobe Photoshop is image/adobe.photoshop, already handled above
-    # Adobe Illustrator
-    { mime = "application/postscript", run = "mediainfo" },
-    { mime = "application/illustrator", run = "mediainfo" },
-    { mime = "application/dvb.ait", run = "mediainfo" },
-    { mime = "application/vnd.adobe.illustrator", run = "mediainfo" },
-    { mime = "image/x-eps", run = "mediainfo" },
-    { mime = "application/eps", run = "mediainfo" },
+    # .srt subtitle, adobe illustrator, adobe photoshop file
+    { mime = "application/{subrip,postscript,illustrator,dvb.ait,vnd.adobe.illustrator,eps}", run = "mediainfo" },
 
     # Sometimes AI file is recognized as "application/pdf". Lmao.
     # In this case use file extension instead:
@@ -106,16 +100,8 @@ Create `.../yazi/yazi.toml` and add:
   prepend_previewers = [
     # Replace magick, image, video with mediainfo
     { mime = "{audio,video,image}/*", run = "mediainfo"},
-    { mime = "application/subrip", run = "mediainfo" },
-
-    # Adobe Photoshop is image/adobe.photoshop, already handled above
-    # Adobe Illustrator
-    { mime = "application/postscript", run = "mediainfo" },
-    { mime = "application/illustrator", run = "mediainfo" },
-    { mime = "application/dvb.ait", run = "mediainfo" },
-    { mime = "application/vnd.adobe.illustrator", run = "mediainfo" },
-    { mime = "image/x-eps", run = "mediainfo" },
-    { mime = "application/eps", run = "mediainfo" },
+    # .srt subtitle, adobe illustrator, adobe photoshop file
+    { mime = "application/{subrip,postscript,illustrator,dvb.ait,vnd.adobe.illustrator,eps}", run = "mediainfo" },
 
     # Sometimes AI file is recognized as "application/pdf". Lmao.
     # In this case use file extension instead:
@@ -146,7 +132,7 @@ Create `.../yazi/yazi.toml` and add:
 
 ```
 
-## Custom theme
+## (Optional) Custom theme
 
 Using the same style with spotter windows. [Read more](https://github.com/sxyazi/yazi/pull/2391)
 
@@ -161,6 +147,38 @@ title = { fg = "green" }
 # Value style.
 # Example: `Format: FLAC` with blue color in preview images above
 tbl_col = { fg = "blue" }
+```
+
+## (Optional) Hide labels or section labels
+
+This `setup` function and all of its options are optional.
+Modify your `~/.config/yazi/init.lua` to include:
+
+```lua
+require("mediainfo"):setup({
+  -- Auto hide the lines with these labels
+  -- Labels are the text with white color in preview images above (without colon ":")
+	-- Example: To hide `Format: FLAC` => "Format"
+  -- Default value:
+	skip_labels = {
+	  "Complete name",
+	  "CompleteName_Last",
+	  "Unique ID",
+	  "File size",
+	  "Format/Info",
+	  "Codec ID/Info",
+	  "MD5 of the unencoded content"
+	  -- "Format" -- Hide all lines with "Format" label
+	},
+	-- skip_labels = false, -- Disable auto hide labels
+
+
+  -- Auto hide the section labels
+  -- Section labels are the text with green color in preview images above
+	-- Example: To hide `Image` => "Image"
+	-- Default value: {}
+	skip_section_labels = { "General", "Image", "Text" },
+})
 ```
 
 ## (Optional) Keymaps to toggle/show/hide/reset metadata and preview image

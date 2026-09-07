@@ -3,24 +3,24 @@
 * Generated with Matugen
 */
 
-@define-color accent_color #c3c0ff;
-@define-color accent_bg_color #424178;
-@define-color accent_fg_color #e2dfff;
+@define-color accent_color #c6bfff;
+@define-color accent_bg_color #454077;
+@define-color accent_fg_color #e4dfff;
 @define-color destructive_color #ffb4ab;
 @define-color destructive_bg_color #93000a;
 @define-color destructive_fg_color #ffdad6;
-@define-color success_color #c7c4dd;
-@define-color success_bg_color #464559;
-@define-color success_fg_color #e3e0f9;
-@define-color warning_color #eab9d2;
-@define-color warning_bg_color #603c50;
-@define-color warning_fg_color #ffd8ea;
+@define-color success_color #c8c3dc;
+@define-color success_bg_color #474459;
+@define-color success_fg_color #e4dff9;
+@define-color warning_color #ecb8cf;
+@define-color warning_bg_color #613b4e;
+@define-color warning_fg_color #ffd8e8;
 @define-color error_color #ffb4ab;
 @define-color error_bg_color #93000a;
 @define-color error_fg_color #ffdad6;
-@define-color window_bg_color #131318;
+@define-color window_bg_color #141318;
 @define-color window_fg_color #e5e1e9;
-@define-color view_bg_color #131318;
+@define-color view_bg_color #141318;
 @define-color view_fg_color #e5e1e9;
 @define-color headerbar_bg_color @window_bg_color;
 @define-color headerbar_fg_color @window_fg_color;
@@ -37,7 +37,7 @@
 @define-color shade_color rgba(0, 0, 0, 0.36);
 @define-color shade_color rgba(0, 0, 0, 0.36);
 @define-color scrollbar_outline_color rgba(139, 145, 152, 0.5);
-@define-color sidebar_bg_color #1b1b21; 
+@define-color sidebar_bg_color #1c1b20; 
 @define-color secondary_sidebar_bg_color @sidebar_bg_color;
 @define-color sidebar_backdrop_color @sidebar_bg_color; 
 @define-color secondary_sidebar_backdrop_color @sidebar_bg_color;

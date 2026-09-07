@@ -1,33 +1,15 @@
---- @since 26.1.22
+--- @since 26.5.6
 
 local M = {}
-local using_new_height_api = ui.lines ~= nil
-local const
-local utils
-local adobe
-local audio
-local image
-local video
-local none_media_preview
 
-const = require(".const")
-utils = require(".utils")
+local const = require(".const")
+local utils = require(".utils")
 
-if using_new_height_api then
-	ya.dbg("mediainfo", "Using yazi version >= 26.5.6")
-	adobe = require(".adobe-stable")
-	audio = require(".audio-stable")
-	image = require(".image-stable")
-	video = require(".video-stable")
-	none_media_preview = require(".none-media-preview-stable")
-else
-	ya.dbg("mediainfo", "Using yazi version <= 26.1.22")
-	adobe = require(".adobe-old")
-	audio = require(".audio-old")
-	image = require(".image-old")
-	video = require(".video-old")
-	none_media_preview = require(".none-media-preview-old")
-end
+local adobe = require(".adobe")
+local audio = require(".audio")
+local image = require(".image")
+local video = require(".video")
+local none_media_preview = require(".none-media-preview")
 
 function M:peek(job)
 	-- debounce peek
@@ -113,7 +95,7 @@ function M:preload(job)
 		return false, nil
 	end
 	if job.args.no_preview then
-		return none_media_preview:peek(job)
+		return none_media_preview:preload(job)
 	end
 
 	local is_video = string.find(job.mime, "^video/")
@@ -130,8 +112,33 @@ function M:preload(job)
 	elseif is_audio then
 		return audio:preload(job)
 	else
-		return none_media_preview:peek(job)
+		return none_media_preview:preload(job)
 	end
+end
+
+function M:setup(opts)
+	if not opts or type(opts) ~= "table" then
+		return
+	end
+
+	if type(opts.skip_labels) == "table" then
+		opts.skip_labels = utils.tbl_to_set(utils.tbl_unique_strings(opts.skip_labels))
+	end
+
+	if type(opts.skip_section_labels) == "table" then
+		opts.skip_section_labels = utils.tbl_to_set(utils.tbl_unique_strings(opts.skip_section_labels))
+	end
+
+	utils.set_state(
+		const.STATE_KEY.skip_labels,
+		type(opts.skip_labels) == "table" and opts.skip_labels
+			or (opts.skip_labels == false and {} or const.skip_labels)
+	)
+
+	utils.set_state(
+		const.STATE_KEY.skip_section_labels,
+		type(opts.skip_section_labels) == "table" and opts.skip_section_labels or {}
+	)
 end
 
 function M:entry(job)

@@ -2,7 +2,6 @@ return {
   {
     "neovim/nvim-lspconfig",
     opts = {
-      -- 1. Enable inlay hints globally at the start
       inlay_hints = {
         enabled = true,
         exclude = { "vue" },
@@ -49,24 +48,23 @@ return {
             Lua = {
               hint = {
                 enable = true,
-                paramName = "All", -- Shows the name of the parameter in function calls
-                setType = true, -- Shows types when assigning variables
-                paramType = true, -- Shows types in function definitions
+                paramName = "All",
+                setType = true,
+                paramType = true,
                 arrayIndex = "Disable",
               },
             },
           },
         },
-        -- 3. You can add others here easily
-        -- clangd = {},
-        -- basedpyright = {},
-      },
-      -- 4. This setup function ensures the hints are turned on when the LSP attaches
-      setup = {
-        ["*"] = function(_, opts)
-          -- This is the 'Force Enable' for all servers
-          vim.lsp.inlay_hint.enable(true)
-        end,
+        terraformls = {
+          root_markers = { ".terraform", ".git", "main.tf", "versions.tf" },
+          init_options = {
+            experimentalFeatures = {
+              prefillRequiredFiles = true,
+              validateOnSave = true,
+            },
+          },
+        },
       },
     },
   },

@@ -1,0 +1,15 @@
+[mgr]
+cwd = { fg = "#c6bfff" }
+hovered = { fg = "#302e41", bg = "#c8c3dc" }
+find_keyword = { fg = "#ecb8cf", italic = true }
+find_position = { fg = "#c6bfff", bg = "reset", italic = true }
+border_symbol = "│"
+border_style = { fg = "#928f99" }
+
+[status]
+separator_open = ""
+separator_close = ""
+mode_normal = { fg = "#2f295f", bg = "#c6bfff", bold = true }
+mode_select = { fg = "#482537", bg = "#ecb8cf", bold = true }
+progress_normal = { fg = "#2f295f", bg = "#c6bfff" }
+progress_label = { fg = "#2f295f", bold = true }

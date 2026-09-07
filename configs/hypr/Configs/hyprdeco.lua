@@ -3,8 +3,8 @@ local colors = require("Configs.hyprcolor")
 hl.config({
 	general = {
 		gaps_in = 3,
-		gaps_out = 8,
-		border_size = 1,
+		gaps_out = 10,
+		border_size = 0,
 
 		col = {
 			-- active_border = colors.active_border,
@@ -18,7 +18,7 @@ hl.config({
 	},
 
 	decoration = {
-		rounding = 2,
+		rounding = 4,
 		rounding_power = 10,
 
 		active_opacity = 1.0,
@@ -30,7 +30,7 @@ hl.config({
 		border_part_of_window = true,
 
 		shadow = {
-			enabled = true,
+			enabled = false,
 			range = 4,
 			render_power = 3,
 			color = "0x1a1a1aee",

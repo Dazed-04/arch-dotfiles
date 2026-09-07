@@ -65,3 +65,7 @@ output_path = "~/.config/swaync/colors.css"
 [templates.wlogout]
 input_path = '~/.config/matugen/templates/wlogout/wlogout.template'
 output_path = '~/.config/wlogout/colors.css'
+
+[templates.yazi]
+input_path = "~/.config/matugen/templates/yazi/theme.toml"
+output_path = "~/.config/yazi/theme.toml"
