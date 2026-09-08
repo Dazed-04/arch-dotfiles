@@ -266,7 +266,7 @@ hl.window_rule({
 		title = "Volume Control",
 	},
 	float = true,
-	size = { "(monitor_w * 0.3)", "(monitor_h * 0.3)" },
+	size = { "(monitor_w * 0.35)", "(monitor_h * 0.32)" },
 	move = { 1050, 42 },
 	pin = true,
 	stay_focused = true,

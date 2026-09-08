@@ -1,12 +1,12 @@
 local colors = {
-	lock_text = "rgba(c9c5d0ff)",
-	border_color = "rgba(928f99ff)",
-	check_color = "rgba(613b4eff)",
-	active_border = "rgba(c6bfffff)",
-	inactive_border = "rgba(47464fff)",
-	font_color = "rgba(e5e1e9ff)",
-	glass_fill = "rgba(47464f0d)",
-	glass_border = "rgba(928f9926)",
-	subtle_text = "rgba(c9c5d099)",
+	lock_text = "rgba(d5c2c6ff)",
+	border_color = "rgba(9e8c90ff)",
+	check_color = "rgba(623f20ff)",
+	active_border = "rgba(ffb0c9ff)",
+	inactive_border = "rgba(514347ff)",
+	font_color = "rgba(efdfe1ff)",
+	glass_fill = "rgba(5143470d)",
+	glass_border = "rgba(9e8c9026)",
+	subtle_text = "rgba(d5c2c699)",
 }
 return colors

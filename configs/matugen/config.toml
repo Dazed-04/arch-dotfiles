@@ -10,10 +10,10 @@ output_path = "~/.config/hypr/Configs/hyprcolor.lua"
 input_path = "~/.config/matugen/templates//hypr/hyprcolor.conf"
 output_path = "~/.config/hypr/hyprcolor.conf"
 
-[templates.kitty]
-input_path = "~/.config/matugen/templates/kitty/kittycolors.conf"
-output_path = "~/.config/kitty/kittycolors.conf"
-post_hook = 'pkill -SIGUSR1 kitty'
+# [templates.kitty]
+# input_path = "~/.config/matugen/templates/kitty/kittycolors.conf"
+# output_path = "~/.config/kitty/kittycolors.conf"
+# post_hook = 'pkill -SIGUSR1 kitty'
 
 [templates.rofi]
 input_path = "~/.config/matugen/templates/rofi/colors-rofi.rasi"
@@ -66,6 +66,8 @@ output_path = "~/.config/swaync/colors.css"
 input_path = '~/.config/matugen/templates/wlogout/wlogout.template'
 output_path = '~/.config/wlogout/colors.css'
 
-[templates.yazi]
-input_path = "~/.config/matugen/templates/yazi/theme.toml"
-output_path = "~/.config/yazi/theme.toml"
+[templates.ohmyposh]
+input_path = '~/.config/matugen/templates/ohmyposh/zen.toml'
+output_path = '~/.config/ohmyposh/zen.toml'
+prefix = "<@"
+suffix = "@>"

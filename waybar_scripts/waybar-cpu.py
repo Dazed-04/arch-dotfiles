@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-import json
-import psutil
-import subprocess
-import os
-import time
-import pickle
-import pathlib
 import glob
+import json
+import os
+import pathlib
+import pickle
+import subprocess
+import time
+
+import psutil
 
 # ---------------------------------------------------
 # CONFIGURATION

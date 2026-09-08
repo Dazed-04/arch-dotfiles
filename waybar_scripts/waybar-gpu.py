@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import json
-import subprocess
 import os
 import pathlib
+import subprocess
 
 # ---------------------------------------------------
 # CONFIGURATION
@@ -161,7 +161,7 @@ bars = [
 graphic = [
     f"            {c('╭─────────────────╮', COLORS['white'])}",
     f"       {c('=', COLORS['white'])}{vc[5]}{c('=│', COLORS['white'])}{bg('░░░░░░░░░░░░░░░░░')}{c('│=', COLORS['white'])}{vc[5]}{c('=', COLORS['white'])}",
-    f"       {c('=', COLORS['white'])}{vc[4]}{c('=│', COLORS['white'])}{bg('░░')}  󰓅  󰘚  󰈐  {bg('░░')}{c('│=', COLORS['white'])}{vc[4]}{c('=', COLORS['white'])}",
+    f"       {c('=', COLORS['white'])}{vc[4]}{c('=│', COLORS['white'])}{bg('░░')}  󰓅  󰘚  󰈐 <span letter_spacing='-2048'> </span>{bg('░░')}{c('│=', COLORS['white'])}{vc[4]}{c('=', COLORS['white'])}",
     f"            {c('│', COLORS['white'])}{bg('░░')} {bars[0]} {bg('░░')}{c('│', COLORS['white'])}",
     f"       {c('=', COLORS['white'])}{vc[3]}{c('=│', COLORS['white'])}{bg('░░')} {bars[1]} {bg('░░')}{c('│=', COLORS['white'])}{vc[3]}{c('=', COLORS['white'])}",
     f"       {c('=', COLORS['white'])}{vc[2]}{c('=│', COLORS['white'])}{bg('░░')} {bars[2]} {bg('░░')}{c('│=', COLORS['white'])}{vc[2]}{c('=', COLORS['white'])}",

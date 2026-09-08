@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import json
-import psutil
-import subprocess
 import pathlib
 import re
+import subprocess
+
+import psutil
 
 # ---------------------------------------------------
 # CONFIGURATION
@@ -212,7 +213,7 @@ legend_colored = (
 )
 
 tooltip_lines.append(f"<span size='10000'> {LEFT_PAD}{legend_colored}</span>")
-tooltip_lines.append(f"<span size='1'>\n</span>")
+tooltip_lines.append("<span size='1'>\n</span>")
 
 print(
     json.dumps(

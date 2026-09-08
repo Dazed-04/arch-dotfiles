@@ -1,15 +1,15 @@
 [mgr]
-cwd = { fg = "#c6bfff" }
-hovered = { fg = "#302e41", bg = "#c8c3dc" }
-find_keyword = { fg = "#ecb8cf", italic = true }
-find_position = { fg = "#c6bfff", bg = "reset", italic = true }
+cwd = { fg = "#f6bc70" }
+hovered = { fg = "#3f2d17", bg = "#dec2a2" }
+find_keyword = { fg = "#bacd9f", italic = true }
+find_position = { fg = "#f6bc70", bg = "reset", italic = true }
 border_symbol = "│"
-border_style = { fg = "#928f99" }
+border_style = { fg = "#9c8e80" }
 
 [status]
 separator_open = ""
 separator_close = ""
-mode_normal = { fg = "#2f295f", bg = "#c6bfff", bold = true }
-mode_select = { fg = "#482537", bg = "#ecb8cf", bold = true }
-progress_normal = { fg = "#2f295f", bg = "#c6bfff" }
-progress_label = { fg = "#2f295f", bold = true }
+mode_normal = { fg = "#462a00", bg = "#f6bc70", bold = true }
+mode_select = { fg = "#263514", bg = "#bacd9f", bold = true }
+progress_normal = { fg = "#462a00", bg = "#f6bc70" }
+progress_label = { fg = "#462a00", bold = true }

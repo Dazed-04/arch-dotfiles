@@ -1,41 +1,22 @@
 #!/usr/bin/env python3
 
-import requests
 import json
-import sys
-from datetime import datetime
 import pathlib
-import time
 import pickle
+import sys
+import time
+from datetime import datetime
+
+import requests
 
 # ---------------- CONFIG
 FALLBACK_LAT = "28.9611"
 FALLBACK_LON = "77.7271"
 DISPLAY_NAME = "Meerut"
 CACHE_TIMEOUT = 900
-FONT = "JetBrains Mono"
-SOLID_LINE = "─" * 18
-
-# ---------------- FIXED DICTIONARIES
-# The target length for the prefix is 14 characters.
-# "28 Wednesday" is exactly 12 chars. We add 2 spaces to reach 14.
-DAYS_FIXED = {
-    0: "Monday           ",
-    1: "Tuesday           ",
-    2: "Wednesday     ",
-    3: "Thursday         ",
-    4: "Friday              ",
-    5: "Saturday         ",
-    6: "Sunday            ",
-}
-
-# These are exactly 14 characters wide.
-TOMORROW_FIXED = {
-    7: "󰖜  Morning     ",
-    12: "󰖙  Midday       ",
-    17: "󰖚  Arvo            ",
-    21: "󰖔  Evening      ",
-}
+FONT = "Liberation Mono"
+SOLID_LINE = "─" * 20
+NBSP = "\u00a0"  # Non-breaking space prevents Pango from collapsing spaces
 
 # ---------------- THEME & COLORS
 try:
@@ -163,67 +144,66 @@ def main():
         f_span = f"font_family='{FONT}'"
 
         lines = [
-            f"<span {f_span} size='large'>{c('   ' + ACTUAL_NAME, COLORS['green'])}</span>"
+            f"<span {f_span} size='large'>{c('' + NBSP * 2 + ACTUAL_NAME, COLORS['green'])}</span>"
         ]
         lines.append(f"\n<span {f_span}>{icon} {desc}</span>")
         lines.append(
-            f"<span {f_span}>   {temp}°C (Feels {curr['apparent_temperature']}°C)</span>"
+            f"<span {f_span}>{NBSP * 3}{temp}°C (Feels {curr['apparent_temperature']}°C)</span>"
         )
         lines.append(
-            f"<span {f_span}>   {daily['sunrise'][0].split('T')[1]}    {daily['sunset'][0].split('T')[1]}</span>"
+            f"<span {f_span}>{NBSP * 3}{daily['sunrise'][0].split('T')[1]}{NBSP * 2}{NBSP * 2}{daily['sunset'][0].split('T')[1]}</span>"
         )
         lines.append(
-            f"<span {f_span}>   {curr['relative_humidity_2m']}% Humidity</span>"
+            f"<span {f_span}>{NBSP * 3}{curr['relative_humidity_2m']}% Humidity</span>"
         )
-        lines.append(f"<span {f_span}>󰖝   {curr['wind_speed_10m']}km/h</span>")
+        lines.append(f"<span {f_span}>󰖝{NBSP * 3}{curr['wind_speed_10m']}km/h</span>")
 
         def add_section(title, icon_glyph):
             lines.append(f"<span {f_span}>{SOLID_LINE}</span>")
             lines.append(
-                f"<span {f_span}><b>{c(icon_glyph + '  ' + title, COLORS['yellow'])}</b></span>\n"
+                f"<span {f_span}><b>{c(icon_glyph + NBSP * 2 + title, COLORS['yellow'])}</b></span>\n"
             )
 
         def format_rain(val):
-            text = f" {str(val).rjust(2)}%"
+            val_str = str(val).rjust(2, NBSP)
+            text = f"{NBSP}{val_str}%"
             return text if val > 0 else c(text, COLORS["bright_black"])
 
         # --- Today ---
         add_section("Today", "")
-        clocks = [
-            "󱑊 ",
-            "󱐿 ",
-            "󱑀 ",
-            "󱑁 ",
-            "󱑂 ",
-            "󱑃 ",
-            "󱑄 ",
-            "󱑅 ",
-            "󱑆 ",
-            "󱑇 ",
-            "󱑈 ",
-            "󱑉 ",
-        ]
+        clocks = ["󱑊", "󱐿", "󱑀", "󱑁", "󱑂", "󱑃", "󱑄", "󱑅", "󱑆", "󱑇", "󱑈", "󱑉"]
         for i in range(24):
             if hourly["time"][i] >= now_iso[:13]:
                 dt_h = datetime.fromisoformat(hourly["time"][i])
                 h_icon, _ = WEATHER_MAP.get(hourly["weather_code"][i], (" ", " "))
-                time_str = dt_h.strftime(f"{clocks[dt_h.hour % 12]} %I:%M %p")
+
+                time_str = dt_h.strftime(f"{clocks[dt_h.hour % 12]}{NBSP}%I:%M{NBSP}%p")
+                time_padded = time_str.ljust(14, NBSP)
                 rain = format_rain(hourly["precipitation_probability"][i])
-                # "󱑄 06:00 PM" (11 chars) + 3 spaces = 14 chars
+                temp_val = f"{hourly['temperature_2m'][i]:.1f}".rjust(5, NBSP)
+
                 lines.append(
-                    f"<span {f_span}>{time_str}             {rain}   {hourly['temperature_2m'][i]:>5.1f}°C  {h_icon}</span>"
+                    f"<span {f_span}>{time_padded}{NBSP * 5}{rain}{NBSP * 2}{NBSP}{temp_val}°C{NBSP * 2}{h_icon}</span>"
                 )
 
         # --- Tomorrow ---
         add_section("Tomorrow", "")
+        tomorrow_labels = {
+            7: f"󰖜{NBSP}Morning",
+            12: f"󰖙{NBSP}Midday",
+            17: f"󰖚{NBSP}Arvo",
+            21: f"󰖔{NBSP}Evening",
+        }
         for i in range(24, 48):
             dt = datetime.fromisoformat(hourly["time"][i])
-            if dt.hour in TOMORROW_FIXED:
-                prefix = TOMORROW_FIXED[dt.hour]
+            if dt.hour in tomorrow_labels:
+                prefix = tomorrow_labels[dt.hour].ljust(14, NBSP)
                 t_icon, _ = WEATHER_MAP.get(hourly["weather_code"][i], (" ", " "))
                 rain = format_rain(hourly["precipitation_probability"][i])
+                temp_val = f"{hourly['temperature_2m'][i]:.1f}".rjust(5, NBSP)
+
                 lines.append(
-                    f"<span {f_span}>{prefix}         {rain}   {hourly['temperature_2m'][i]:>5.1f}°C  {t_icon}</span>"
+                    f"<span {f_span}>{prefix}{NBSP * 5}{rain}{NBSP * 2}{NBSP}{temp_val}°C{NBSP * 2}{t_icon}</span>"
                 )
 
         # --- Extended ---
@@ -233,13 +213,15 @@ def main():
             d_icon, _ = WEATHER_MAP.get(daily["weather_code"][i], (" ", " "))
             rain = format_rain(daily["precipitation_probability_max"][i])
 
-            day_str = DAYS_FIXED[dt.weekday()]
+            day_str = dt.strftime("%A")
             date_str = dt.strftime("%d")
-            # "XX " (3) + "DayName      " (11) = 14 characters total
-            prefix = f"{date_str} {day_str}"
+            prefix = f"{date_str}{NBSP}{day_str}".ljust(14, NBSP)
+
+            min_t = f"{daily['temperature_2m_min'][i]:.0f}".rjust(2, NBSP)
+            max_t = f"{daily['temperature_2m_max'][i]:.0f}".rjust(2, NBSP)
 
             lines.append(
-                f"<span {f_span}>{prefix}{rain}  {c('', COLORS['cyan'])} {daily['temperature_2m_min'][i]:>2.0f}°  {c('', COLORS['red'])} {daily['temperature_2m_max'][i]:>2.0f}°  {d_icon}</span>"
+                f"<span {f_span}>{prefix}{NBSP * 2}{rain}{NBSP * 2}{c('', COLORS['cyan'])}{NBSP}{min_t}°{NBSP * 2}{c('', COLORS['red'])}{NBSP}{max_t}°{NBSP * 2}{d_icon}</span>"
             )
 
         print(
