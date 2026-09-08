@@ -62,7 +62,7 @@ case "$1" in
   ;;
 *"System Monitor"*)
   pkill rofi
-  nohup bash "$HOME/.local/bin/myScripts/utilities/btop.sh" >/dev/null 2>&1 &
+  hyprctl dispatch 'hl.dsp.exec_cmd("$HOME/.local/bin/myScripts/utilities/btop.sh")'
   disown
   ;;
 *"Power Saving"*)
