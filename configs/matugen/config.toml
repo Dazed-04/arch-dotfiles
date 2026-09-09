@@ -65,9 +65,3 @@ output_path = "~/.config/swaync/colors.css"
 [templates.wlogout]
 input_path = '~/.config/matugen/templates/wlogout/wlogout.template'
 output_path = '~/.config/wlogout/colors.css'
-
-[templates.ohmyposh]
-input_path = '~/.config/matugen/templates/ohmyposh/zen.toml'
-output_path = '~/.config/ohmyposh/zen.toml'
-prefix = "<@"
-suffix = "@>"

@@ -15,7 +15,7 @@
     "hyprland/window",
     "group/info",
     "group/connection",
-    "custom/privacy-dots",
+    "custom/privacy-dots"
   ],
   
   "modules-center": [
@@ -26,6 +26,6 @@
   "idle_inhibitor",
   "group/demo",
   "group/hub",
-  "custom/power",
-  ],
+  "custom/power"
+  ]
 }

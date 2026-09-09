@@ -75,13 +75,12 @@ hl.window_rule({
 	name = "float-obs-preview",
 	match = {
 		class = "com.obsproject.Studio",
-		title = ".*Video Capture Device.*",
+		title = "^Projector.*Video Capture Device.*",
 	},
 	float = true,
 	pin = true,
 	size = { 400, 300 },
-	no_focus = true,
-	move = "monitor_w-410 monitor_h-310",
+	move = "monitor_w-400 monitor_h-300",
 })
 
 -- Xdg Desktop Portal Rules
@@ -269,7 +268,6 @@ hl.window_rule({
 	size = { "(monitor_w * 0.35)", "(monitor_h * 0.32)" },
 	move = { 1050, 42 },
 	pin = true,
-	stay_focused = true,
 	decorate = true,
 	opacity = "0.7 0.7",
 })

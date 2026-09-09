@@ -476,10 +476,10 @@
 
 
 "custom/privacy-dots": {
-    "exec": "privacy-dots",
+    "exec": "$HOME/.config/waybar/scripts/privacydots.sh",
     "return-type": "json",
     "interval": 3,
-    "format": "{}",
+    "format": "{text}",
     "tooltip": true,
     "escape": false,
     "markup": "pango",

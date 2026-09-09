@@ -1,0 +1,1 @@
+../../../waybar_scripts/privacydots.sh

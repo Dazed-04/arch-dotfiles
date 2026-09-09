@@ -9,12 +9,13 @@ auto = false
 notice = false
 
 [palette]
-blue = '#89b4fa'
+blue = '#89b1fa'
 cyan = '#94e2d5'
 grey = '#6c6c6c'
-yellow = '#f9e2af'
+yellow = '#eac16c'
 magenta = '#cba6f7'
 red = '#f38ba8'
+white = '#89984'
 
 [[blocks]]
 type = 'prompt'
@@ -23,7 +24,7 @@ newline = true
 
 [[blocks.segments]]
 template = '{{.Icon}} '
-foreground = 'p:blue'
+foreground = 'p:white'
 type = 'os'
 style = 'plain'
 
@@ -32,7 +33,7 @@ arch = "󰣇"
 
 [[blocks.segments]]
 template = '{{ .UserName }}@{{ .HostName }} '
-foreground = 'p:blue'
+foreground = 'p:yellow'
 type = 'session'
 style = 'plain'
 
@@ -41,16 +42,16 @@ type = 'path'
 style = 'plain'
 foreground_templates = [
   "{{if gt .Code 0}}p:red{{end}}",
-  "{{if eq .Code 0}}p:magenta{{end}}",
+  "{{if eq .Code 0}}p:white{{end}}",
 ]
 background = 'transparent'
-foreground = 'p:blue'
+foreground = 'p:cyan'
 template = '{{ .Path }}'
 
 [blocks.segments.options]
 folder_icon = '....'
 home_icon = '~'
-max_depth = 5
+max_depth = 4
 style = 'agnoster_short'
 
 [[blocks.segments]]
@@ -58,7 +59,7 @@ type = 'git'
 style = 'plain'
 foreground = 'p:grey'
 background = 'transparent'
-template = ' {{ .HEAD }}{{ if .Working.Changed }} <p:red>*{{add .Working.Modified .Working.Deleted .Working.Unmerged}}</>{{ end }}{{ if .Staging.Changed }} <p:magenta>+{{add .Staging.Modified .Staging.Deleted .Staging.Unmerged}}</>{{ end }}{{ if gt .Behind 0 }} <p:cyan>⇣</><p:yellow>{{ .Behind }}</>{{ end }}{{ if gt .Ahead 0 }} <p:cyan>⇡</><p:yellow>{{ .Ahead }}</>{{ end }}'
+template = ' {{ .HEAD }}{{ if .Working.Changed }} <p:red>*{{add .Working.Modified .Working.Deleted .Working.Unmerged}}</>{{ end }}{{ if .Staging.Changed }} <p:magenta>+{{add .Staging.Modified .Staging.Deleted .Staging.Unmerged}}</>{{ end }}{{ if gt .Behind 0 }} <p:cyan></><p:white>{{ .Behind }}</>{{ end }}{{ if gt .Ahead 0 }} <p:cyan></><p:white>{{ .Ahead }}</>{{ end }}'
 
 [blocks.segments.options]
 branch_icon = ' '
@@ -79,16 +80,14 @@ foreground = 'blue'
 background = 'transparent'
 template = "  {{ if .Error }}{{ .Error }}{{ else }}{{ if .Venv }}{{ .Venv }} {{ end }}{{ .Full }}{{ end }} "
 
-[[blocks]]
-type = 'rprompt'
-overflow = 'hidden'
-
 [[blocks.segments]]
 type = 'executiontime'
 style = 'plain'
-foreground = 'p:yellow'
 background = 'transparent'
-template = '{{ .FormattedMs }} '
+template = '<p:yellow>  </><p:red>{{ .FormattedMs }} </>'
+
+[blocks.segments.properties]
+threshold = 5000
 
 [[blocks]]
 type = 'prompt'
@@ -100,7 +99,7 @@ type = 'text'
 style = 'plain'
 foreground_templates = [
   "{{if gt .Code 0}}p:red{{end}}",
-  "{{if eq .Code 0}}p:magenta{{end}}",
+  "{{if eq .Code 0}}p:white{{end}}",
 ]
 background = 'transparent'
 template = '❯'
@@ -108,12 +107,12 @@ template = '❯'
 [transient_prompt]
 foreground_templates = [
   "{{if gt .Code 0}}p:red{{end}}",
-  "{{if eq .Code 0}}p:magenta{{end}}",
+  "{{if eq .Code 0}}p:white{{end}}",
 ]
 background = 'transparent'
 template = '❯ '
 
 [secondary_prompt]
-foreground = 'p:magenta'
+foreground = 'p:white'
 background = 'transparent'
 template = '❯❯ '

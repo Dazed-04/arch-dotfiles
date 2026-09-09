@@ -218,5 +218,5 @@ tooltip label {
   color: lighter(@main-color);
   border-radius: 5px;
   font-size: 12px;
-  letter-spacing: 1px;
+  letter-spacing: 0px;
 }

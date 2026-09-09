@@ -38,8 +38,8 @@ hl.config({
 
 		blur = {
 			enabled = true,
-			size = 4,
-			passes = 3,
+			size = 6,
+			passes = 4,
 			new_optimizations = true,
 			ignore_opacity = true,
 			xray = false,
@@ -84,7 +84,7 @@ hl.config({
 	scrolling = {
 		direction = "right",
 		column_width = 0.8,
-		fullscreen_on_one_column = true,
+		fullscreen_on_one_column = false,
 	},
 })
 

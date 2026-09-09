@@ -56,14 +56,43 @@ def c(text, color_hex):
 # ---------------- DATA FETCHING
 def get_location():
     try:
-        response = requests.get("http://ip-api.com/json/", timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        if data.get("status") == "success":
-            return str(data["lat"]), str(data["lon"]), data.get("city", DISPLAY_NAME)
-    except:
-        pass
-    return FALLBACK_LAT, FALLBACK_LON, DISPLAY_NAME
+        import gi
+
+        gi.require_version("Geoclue", "2.0")
+        from gi.repository import Geoclue
+
+        # Connect to the Geoclue D-Bus service
+        client = Geoclue.Simple.new_sync(
+            "waybar-weather", Geoclue.AccuracyLevel.CITY, None
+        )
+        loc = client.get_location()
+
+        lat = str(loc.get_property("latitude"))
+        lon = str(loc.get_property("longitude"))
+
+        # Reverse geocode to get the city name
+        headers = {"User-Agent": "waybar-weather-script/1.0"}
+        res = requests.get(
+            f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json",
+            headers=headers,
+            timeout=5,
+        )
+
+        if res.status_code == 200:
+            address = res.json().get("address", {})
+            city = (
+                address.get("city")
+                or address.get("town")
+                or address.get("village")
+                or DISPLAY_NAME
+            )
+            return lat, lon, city
+
+        return lat, lon, DISPLAY_NAME
+
+    except Exception as e:
+        # Silently fallback to hardcoded coordinates if Geoclue or Network fails
+        return FALLBACK_LAT, FALLBACK_LON, DISPLAY_NAME
 
 
 LAT, LON, ACTUAL_NAME = get_location()
@@ -151,12 +180,32 @@ def main():
             f"<span {f_span}>{NBSP * 3}{temp}°C (Feels {curr['apparent_temperature']}°C)</span>"
         )
         lines.append(
-            f"<span {f_span}>{NBSP * 3}{daily['sunrise'][0].split('T')[1]}{NBSP * 2}{NBSP * 2}{daily['sunset'][0].split('T')[1]}</span>"
-        )
-        lines.append(
             f"<span {f_span}>{NBSP * 3}{curr['relative_humidity_2m']}% Humidity</span>"
         )
         lines.append(f"<span {f_span}>󰖝{NBSP * 3}{curr['wind_speed_10m']}km/h</span>")
+        # --- Dynamic Sun Schedule ---
+        now_dt = datetime.now()
+        sunset_str = daily["sunset"][0]
+        sunset_dt = datetime.fromisoformat(sunset_str)
+
+        if now_dt > sunset_dt:
+            sunrise_str = (
+                daily["sunrise"][1]
+                if len(daily["sunrise"]) > 1
+                else daily["sunrise"][0]
+            )
+            sun_line = (
+                f"{NBSP * 3}{sunset_dt.strftime('%H:%M')}{NBSP * 4}"
+                f"{NBSP * 3}{datetime.fromisoformat(sunrise_str).strftime('%H:%M')}"
+            )
+        else:
+            sunrise_dt = datetime.fromisoformat(daily["sunrise"][0])
+            sun_line = (
+                f"{NBSP * 3}{sunrise_dt.strftime('%H:%M')}{NBSP * 4}"
+                f"{NBSP * 3}{sunset_dt.strftime('%H:%M')}"
+            )
+
+        lines.append(f"<span {f_span}>{sun_line}</span>")
 
         def add_section(title, icon_glyph):
             lines.append(f"<span {f_span}>{SOLID_LINE}</span>")
@@ -172,19 +221,25 @@ def main():
         # --- Today ---
         add_section("Today", "")
         clocks = ["󱑊", "󱐿", "󱑀", "󱑁", "󱑂", "󱑃", "󱑄", "󱑅", "󱑆", "󱑇", "󱑈", "󱑉"]
-        for i in range(24):
-            if hourly["time"][i] >= now_iso[:13]:
-                dt_h = datetime.fromisoformat(hourly["time"][i])
-                h_icon, _ = WEATHER_MAP.get(hourly["weather_code"][i], (" ", " "))
 
-                time_str = dt_h.strftime(f"{clocks[dt_h.hour % 12]}{NBSP}%I:%M{NBSP}%p")
-                time_padded = time_str.ljust(14, NBSP)
-                rain = format_rain(hourly["precipitation_probability"][i])
-                temp_val = f"{hourly['temperature_2m'][i]:.1f}".rjust(5, NBSP)
+        now_hour = datetime.now().strftime("%Y-%m-%dT%H:00")
+        try:
+            start_idx = hourly["time"].index(now_hour)
+        except ValueError:
+            start_idx = 0
 
-                lines.append(
-                    f"<span {f_span}>{time_padded}{NBSP * 5}{rain}{NBSP * 2}{NBSP}{temp_val}°C{NBSP * 2}{h_icon}</span>"
-                )
+        for i in range(start_idx, min(start_idx + 5, len(hourly["time"]))):
+            dt_h = datetime.fromisoformat(hourly["time"][i])
+            h_icon, _ = WEATHER_MAP.get(hourly["weather_code"][i], (" ", " "))
+
+            time_str = dt_h.strftime(f"{clocks[dt_h.hour % 12]}{NBSP}%I:%M{NBSP}%p")
+            time_padded = time_str.ljust(14, NBSP)
+            rain = format_rain(hourly["precipitation_probability"][i])
+            temp_val = f"{hourly['temperature_2m'][i]:.1f}".rjust(5, NBSP)
+
+            lines.append(
+                f"<span {f_span}>{time_padded}{NBSP * 5}{rain}{NBSP * 2}{NBSP}{temp_val}°C{NBSP * 2}{h_icon}</span>"
+            )
 
         # --- Tomorrow ---
         add_section("Tomorrow", "")
