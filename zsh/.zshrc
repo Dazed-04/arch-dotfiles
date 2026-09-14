@@ -253,10 +253,9 @@ superpacman() {
   command "$HOME/.local/bin/myScripts/utilities/superPackageManagers.sh" --pacman
 }
 
-# Music and Video download alias
-alias gm="get-music"
-alias gv="get-video"
-
+gm() {
+  command "$HOME/.local/bin/myScripts/media/yt-media"
+}
 
 export NVM_DIR="$HOME/.config/nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"  # This loads nvm

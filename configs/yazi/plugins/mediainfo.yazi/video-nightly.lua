@@ -235,7 +235,7 @@ function M:preload(job)
 
 	if not cache_img_status and video_preload_err then
 		ya.dbg("mediainfo", video_preload_err)
-		err_msg = err_msg .. string.format("Failed to start `%s`.\n Do you have `%s` installed?\n", "ffmpeg", "ffmpeg")
+		-- err_msg = err_msg .. string.format("Failed to start `%s`.\n Do you have `%s` installed?\n", "ffmpeg", "ffmpeg")
 	end
 
 	-- NOTE: Get mediainfo and save to cache folder

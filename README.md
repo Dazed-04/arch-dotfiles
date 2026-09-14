@@ -9,6 +9,11 @@
 ### 📸 Showcase
 
 <p align="center">
+  <img src="assets/desktop.png" alt="Desktop and yt-media" width="100%">
+  <br>
+</p>
+
+<p align="center">
   <img src="assets/main_desktop.png" alt="Main Desktop" width="100%">
   <br>
   <em>Hyprland + Waybar + Matugen</em>
