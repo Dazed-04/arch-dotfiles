@@ -288,4 +288,8 @@ typeset -U path
 # 4. Finalize and Alias
 export PATH
 
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/home/Dazed/y/google-cloud-sdk/path.zsh.inc' ]; then . '/home/Dazed/y/google-cloud-sdk/path.zsh.inc'; fi
 
+# The next line enables shell command completion for gcloud.
+if [ -f '/home/Dazed/y/google-cloud-sdk/completion.zsh.inc' ]; then . '/home/Dazed/y/google-cloud-sdk/completion.zsh.inc'; fi

@@ -56,43 +56,16 @@ def c(text, color_hex):
 # ---------------- DATA FETCHING
 def get_location():
     try:
-        import gi
+        # Fast IP-based location without system D-Bus dependencies
+        r = requests.get("http://ip-api.com/json/", timeout=3)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("status") == "success":
+                return str(data["lat"]), str(data["lon"]), data["city"]
+    except Exception:
+        pass
 
-        gi.require_version("Geoclue", "2.0")
-        from gi.repository import Geoclue
-
-        # Connect to the Geoclue D-Bus service
-        client = Geoclue.Simple.new_sync(
-            "waybar-weather", Geoclue.AccuracyLevel.CITY, None
-        )
-        loc = client.get_location()
-
-        lat = str(loc.get_property("latitude"))
-        lon = str(loc.get_property("longitude"))
-
-        # Reverse geocode to get the city name
-        headers = {"User-Agent": "waybar-weather-script/1.0"}
-        res = requests.get(
-            f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json",
-            headers=headers,
-            timeout=5,
-        )
-
-        if res.status_code == 200:
-            address = res.json().get("address", {})
-            city = (
-                address.get("city")
-                or address.get("town")
-                or address.get("village")
-                or DISPLAY_NAME
-            )
-            return lat, lon, city
-
-        return lat, lon, DISPLAY_NAME
-
-    except Exception as e:
-        # Silently fallback to hardcoded coordinates if Geoclue or Network fails
-        return FALLBACK_LAT, FALLBACK_LON, DISPLAY_NAME
+    return FALLBACK_LAT, FALLBACK_LON, DISPLAY_NAME
 
 
 LAT, LON, ACTUAL_NAME = get_location()
@@ -136,8 +109,10 @@ def get_weather_data():
         try:
             with open(CACHE_FILE, "rb") as f:
                 cached = pickle.load(f)
+                # Ensure the cache belongs to the current physical location
                 if time.time() - cached["timestamp"] < CACHE_TIMEOUT:
-                    return cached["data"]
+                    if cached.get("lat") == LAT and cached.get("lon") == LON:
+                        return cached["data"]
         except:
             pass
     url = (
@@ -151,7 +126,9 @@ def get_weather_data():
         r.raise_for_status()
         data = r.json()
         with open(CACHE_FILE, "wb") as f:
-            pickle.dump({"timestamp": time.time(), "data": data}, f)
+            pickle.dump(
+                {"timestamp": time.time(), "lat": LAT, "lon": LON, "data": data}, f
+            )
         return data
     except:
         return None
@@ -183,6 +160,7 @@ def main():
             f"<span {f_span}>{NBSP * 3}{curr['relative_humidity_2m']}% Humidity</span>"
         )
         lines.append(f"<span {f_span}>󰖝{NBSP * 3}{curr['wind_speed_10m']}km/h</span>")
+
         # --- Dynamic Sun Schedule ---
         now_dt = datetime.now()
         sunset_str = daily["sunset"][0]

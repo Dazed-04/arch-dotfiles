@@ -141,7 +141,7 @@ purple="#9B32FA"
 dot() {
   local on="$1" color="$2" symbol="$3"
   if [[ "$on" -eq 1 ]]; then
-    printf '<span font="Font Awesome 7 Free" foreground="%s">%s</span>' "$color" "$symbol"
+    printf '<span font="Font Awesome 7 Free Solid" foreground="%s">%s</span>' "$color" "$symbol"
   else
     printf ''
   fi
@@ -150,7 +150,7 @@ dot() {
 dots=()
 mic_dot="$(dot "$mic" "$green" "")"
 [[ -n "$mic_dot" ]] && dots+=("$mic_dot")
-cam_dot="$(dot "$cam" "$orange" " ")"
+cam_dot="$(dot "$cam" "$orange" "󰄀 ")"
 [[ -n "$cam_dot" ]] && dots+=("$cam_dot")
 loc_dot="$(dot "$loc" "$blue" "")"
 [[ -n "$loc_dot" ]] && dots+=("$loc_dot")

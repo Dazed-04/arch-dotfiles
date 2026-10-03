@@ -170,6 +170,20 @@ hl.window_rule({
 	opacity = "0.7 0.7",
 })
 
+-- Zen PiP Rules
+hl.window_rule({
+	name = "float-zen-pip",
+	match = {
+		class = "zen",
+		title = "Picture-in-Picture",
+	},
+	float = true,
+	center = true,
+	decorate = true,
+	stay_focused = true,
+	size = { 1000, 700 },
+})
+
 -- Calculator Rules
 hl.window_rule({
 	name = "float-Qalculate",
@@ -569,7 +583,7 @@ hl.window_rule({
 	workspace = "special:music",
 	center = true,
 	decorate = true,
-	opacity = "0.7 0.6",
+	opacity = "0.65 0.65",
 })
 
 -- Global are you sure confirm windows
@@ -613,9 +627,20 @@ hl.window_rule({
 hl.window_rule({
 	name = "move-hyprland-run",
 	match = { class = "hyprland-run" },
-
 	move = "20 monitor_h-120",
 	float = true,
+})
+
+-- Hyprland share picker Rules
+hl.window_rule({
+	name = "float-hyprland-share-picker",
+	match = {
+		class = "hyprland-share-picker",
+	},
+	float = true,
+	center = true,
+	decorate = true,
+	size = { 800, 500 },
 })
 
 -- Force Hyprland authentication dialog to float true and center
