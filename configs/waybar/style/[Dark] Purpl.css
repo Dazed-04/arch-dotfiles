@@ -18,7 +18,7 @@
 
 window#waybar {
   /*background: alpha(@background, 0.1);*/
-  background: rgba (0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 5px;
   /*border: 0px solid alpha(@background,0.8);*/
 }
@@ -31,11 +31,36 @@ window#waybar {
   color: lighter(@main-color);
 }
 
-tooltip {
+tooltip,
+menu {
   background: rgba(30, 30, 30, 0.2);
   border: 2px solid alpha(lighter(@color8), 0.2);
   border-radius: 10px;
   box-shadow: none;
+}
+
+menu {
+  padding: 4px;
+}
+
+menuitem {
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: @foreground;
+}
+
+menuitem:hover {
+  background: alpha(@color12, 0.3);
+}
+
+menuitem:disabled {
+  color: alpha(@foreground, 0.4);
+}
+
+menu separator {
+  background: alpha(lighter(@color8), 0.2);
+  min-height: 1px;
+  margin: 4px 6px;
 }
 
 tooltip label {
@@ -187,7 +212,7 @@ tooltip label {
   margin-left: 4px;
   margin-right: 4px;
   padding-left: 6px;
-  padding-left: 6px;
+  padding-right: 6px;
   padding-top: 0px;
   padding-bottom: 0px;
 }

@@ -3,32 +3,32 @@
 * Generated with Matugen
 */
 
-@define-color accent_color #c4c0ff;
-@define-color accent_bg_color #434078;
-@define-color accent_fg_color #e3dfff;
+@define-color accent_color #bec2ff;
+@define-color accent_bg_color #3d4279;
+@define-color accent_fg_color #e0e0ff;
 @define-color destructive_color #ffb4ab;
 @define-color destructive_bg_color #93000a;
 @define-color destructive_fg_color #ffdad6;
-@define-color success_color #c7c4dc;
-@define-color success_bg_color #464559;
-@define-color success_fg_color #e3e0f9;
-@define-color warning_color #eab9d1;
-@define-color warning_bg_color #603b4f;
-@define-color warning_fg_color #ffd8ea;
+@define-color success_color #c5c4dd;
+@define-color success_bg_color #444559;
+@define-color success_fg_color #e1e0f9;
+@define-color warning_color #e7b9d5;
+@define-color warning_bg_color #5e3c53;
+@define-color warning_fg_color #ffd8ee;
 @define-color error_color #ffb4ab;
 @define-color error_bg_color #93000a;
 @define-color error_fg_color #ffdad6;
 @define-color window_bg_color #131318;
-@define-color window_fg_color #e5e1e9;
+@define-color window_fg_color #e4e1e9;
 @define-color view_bg_color #131318;
-@define-color view_fg_color #e5e1e9;
+@define-color view_fg_color #e4e1e9;
 @define-color headerbar_bg_color @window_bg_color;
 @define-color headerbar_fg_color @window_fg_color;
 @define-color headerbar_border_color @window_bg_color;
 @define-color headerbar_backdrop_color @window_bg_color;
 @define-color headerbar_shade_color @window_bg_color;
 @define-color card_bg_color #2a292f;
-@define-color card_fg_color #e5e1e9;
+@define-color card_fg_color #e4e1e9;
 @define-color card_shade_color rgba(0, 0, 0, 0.07);
 @define-color dialog_bg_color @card_bg_color;
 @define-color dialog_fg_color @card_fg_color;
@@ -37,7 +37,7 @@
 @define-color shade_color rgba(0, 0, 0, 0.36);
 @define-color shade_color rgba(0, 0, 0, 0.36);
 @define-color scrollbar_outline_color rgba(139, 145, 152, 0.5);
-@define-color sidebar_bg_color #1c1b21; 
+@define-color sidebar_bg_color #1b1b21; 
 @define-color secondary_sidebar_bg_color @sidebar_bg_color;
 @define-color sidebar_backdrop_color @sidebar_bg_color; 
 @define-color secondary_sidebar_backdrop_color @sidebar_bg_color;

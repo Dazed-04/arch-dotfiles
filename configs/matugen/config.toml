@@ -10,10 +10,9 @@ output_path = "~/.config/hypr/Configs/hyprcolor.lua"
 input_path = "~/.config/matugen/templates//hypr/hyprcolor.conf"
 output_path = "~/.config/hypr/hyprcolor.conf"
 
-# [templates.kitty]
-# input_path = "~/.config/matugen/templates/kitty/kittycolors.conf"
-# output_path = "~/.config/kitty/kittycolors.conf"
-# post_hook = 'pkill -SIGUSR1 kitty'
+[templates.kitty]
+input_path = "~/.config/matugen/templates/kitty/kittycolors.conf"
+output_path = "~/.config/kitty/kittycolors.conf"
 
 [templates.rofi]
 input_path = "~/.config/matugen/templates/rofi/colors-rofi.rasi"
