@@ -1,80 +1,151 @@
---------------------
---- WINDOW RULES ---
---------------------
+--------------------------------
+---- WINDOWS AND WORKSPACES ----
+--------------------------------
 
--- See https://wiki.hypr.land/Configuring/Window-Rules/ for more
--- See https://wiki.hypr.land/Configuring/Workspace-Rules/ for workspace rules
+-- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
+-- and https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
+-- Rules are evaluated top to bottom, so order matters: general rules first, global rules last.
 
--- Windowrule for applications
+local glass = "0.7 0.7"
+local soft = "0.8 0.8"
 
--- File Manager Rules
+-- Floating, centered, decorated window. `extra` adds to or overrides the defaults.
+local function float_center(name, match, size, extra)
+	local rule = { name = name, match = match, float = true, center = true, decorate = true, size = size }
+	for k, v in pairs(extra or {}) do
+		rule[k] = v
+	end
+	hl.window_rule(rule)
+end
+
+-- Pinned, floating panel at a fixed position (volume, network, bluetooth menus).
+local function panel(name, match, size, pos, extra)
+	local rule = {
+		name = name,
+		match = match,
+		float = true,
+		pin = true,
+		decorate = true,
+		opacity = glass,
+		size = size,
+		move = pos,
+	}
+	for k, v in pairs(extra or {}) do
+		rule[k] = v
+	end
+	hl.window_rule(rule)
+end
+
+local small_panel = { "(monitor_w * 0.25)", "(monitor_h * 0.3)" }
+
+----------------------
+--- File managers ----
+----------------------
+
+float_center("float-thunar", { initial_class = "thunar" }, { 1000, 700 }, { opacity = glass })
+float_center(
+	"float-thunar-bulk-rename",
+	{ initial_class = "thunar", title = "^(Bulk Rename).*" },
+	{ 1000, 700 },
+	{ opacity = glass }
+)
+
+-- Files through Rofi / Thunar / Yazi (nvim file pickers)
+float_center("float-rofi-files", { initial_class = "rofi-nvim" }, { 1100, 800 }, { opacity = soft })
+float_center("float-thunar-files", { initial_class = "thunar-nvim" }, { 1100, 800 }, { opacity = soft })
+float_center("float-yazi-nvim", { initial_class = "yazi-nvim" }, { 1200, 800 }, { opacity = "0.9 0.9" })
+
+----------------------
+--- TUIs and tools ---
+----------------------
+
+float_center("float-wlctl", { initial_class = "^(wlctl)$" }, { 1000, 700 })
+float_center("float-bluetui", { initial_class = "^(bluetui)$" }, { 1000, 700 })
+float_center("float-btop", { initial_class = "^(btop)$" }, { 1400, 800 })
+float_center("float-bssh", { initial_class = "bssh" }, { 1000, 700 }, { opacity = glass })
+float_center("float-bvnc", { initial_class = "bvnc" }, { 1000, 700 }, { opacity = glass })
+float_center(
+	"float-java-console",
+	{ initial_class = "sun-tools-jconsole-JConsole" },
+	{ 1000, 800 },
+	{ opacity = glass }
+)
+float_center("float-cmake", { initial_class = "cmake-gui" }, { 1000, 700 }, { opacity = glass })
+float_center("float-localsend", { initial_class = "localsend" }, { 1000, 700 }, { opacity = glass })
+
+-- Music (rmpc lives on the music special workspace)
 hl.window_rule({
-	name = "float-thunar",
-	match = {
-		class = "Thunar",
-	},
-	float = true,
-	size = { 1000, 700 },
+	name = "rmpc-music-workspace",
+	match = { initial_class = "rmpc" },
+	workspace = "special:music",
 	center = true,
 	decorate = true,
-	opacity = "0.7 0.7",
+	opacity = "0.65 0.65",
 })
 
--- Wlctl Window Rule
+----------------------
+--- Theming tools ----
+----------------------
+
+float_center("float-kvantum", { initial_class = "kvantummanager" }, { 1000, 700 }, { opacity = glass })
+float_center("float-kvantum-preview", { initial_class = "kvantumpreview" }, { 700, 500 }, { opacity = glass })
+float_center("float-nwg-look", { initial_class = "nwg-look" }, { 1000, 700 }, { opacity = glass })
+float_center("float-qt5ct", { initial_class = "qt5ct" }, { 1000, 700 }, { opacity = glass })
+float_center("float-qt6ct", { initial_class = "qt6ct" }, { 1000, 700 }, { opacity = glass })
+
+-- Qt test utilities
+float_center("float-qt-test", { initial_class = "qv4l2" }, { 1000, 700 }, { opacity = glass, stay_focused = true })
+float_center("float-qt-video", { initial_class = "qvidcap" }, { 1000, 700 })
+
+----------------------
+--- Media and docs ---
+----------------------
+
+float_center("float-imv", { initial_class = "imv", title = "^(imv -).*" }, { 1536, 864 }, { stay_focused = true })
+float_center("float-mpv", { initial_class = "mpv" }, { 1536, 864 })
+
+-- Screenshot editor
+float_center(
+	"float-satty",
+	{ initial_class = "com.gabm.satty", title = "satty" },
+	{ 1536, 864 },
+	{ stay_focused = true }
+)
+
+-- Zathura is kept tiled
 hl.window_rule({
-	name = "float-wlctl",
-	match = {
-		class = "^(wlctl)$",
-	},
-	float = true,
-	size = { 1000, 700 },
+	name = "tile-zathura",
+	match = { initial_class = "org.pwmt.zathura" },
+	-- float = true,
+	float = false,
+	size = { 1000, 800 },
 	center = true,
 	decorate = true,
+	opacity = soft,
 })
 
--- Bluetui Window Rule
+-- Rnote only gets opacity
 hl.window_rule({
-	name = "float-bluetui",
-	match = {
-		class = "^(bluetui)$",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
+	name = "rnote-opacity",
+	match = { initial_class = "com.github.flxzt.rnote" },
+	opacity = soft,
 })
 
--- Btop Window Rule
+-- Calculator
 hl.window_rule({
-	name = "float-btop",
-	match = {
-		class = "^(btop)$",
-	},
+	name = "float-qalculate",
+	match = { initial_class = "qalculate-gtk", title = "Qalculate!" },
 	float = true,
-	size = { 1400, 800 },
-	center = true,
 	decorate = true,
+	size = { 400, 400 },
+	opacity = soft,
 })
 
--- Satty Rules
-hl.window_rule({
-	name = "float-satty",
-	match = {
-		class = "com.gabm.satty",
-		title = "satty",
-	},
-	float = true,
-	size = { 1536, 864 },
-	center = true,
-	decorate = true,
-	stay_focused = true,
-})
-
--- Obs Preview Window Rules
+-- OBS preview window (pinned to the bottom-right corner)
 hl.window_rule({
 	name = "float-obs-preview",
 	match = {
-		class = "com.obsproject.Studio",
+		initial_class = "com.obsproject.Studio",
 		title = "^Projector.*Video Capture Device.*",
 	},
 	float = true,
@@ -83,510 +154,137 @@ hl.window_rule({
 	move = "monitor_w-400 monitor_h-300",
 })
 
--- Xdg Desktop Portal Rules
+----------------------
+--- GIMP and apps ----
+----------------------
+
+float_center("float-gimp-submenus", { initial_class = "script-fu" }, { 600, 500 }, { stay_focused = true })
+float_center("float-gimp-pdf", { initial_class = "file-pdf-load", title = "Load PDF Image" }, nil, { opacity = soft })
+float_center("float-keepassxc", { initial_class = "org.keepassxc.KeePassXC" }, { 1200, 800 }, { opacity = soft })
+float_center(
+	"float-xdg-desktop-portal-gtk",
+	{ initial_class = "xdg-desktop-portal-gtk" },
+	{ 600, 500 },
+	{ stay_focused = true }
+)
+
+----------------------
+--- Zen submenus -----
+----------------------
+
+local zen = "^(zen)$"
+
+float_center(
+	"float-zen-download-menu",
+	{ initial_class = zen, title = "Library" },
+	{ 900, 500 },
+	{ stay_focused = true, opacity = glass }
+)
+float_center(
+	"float-zen-save-image-as-menu",
+	{ initial_class = zen, title = "^(Save Image).*" },
+	{ 600, 500 },
+	{ stay_focused = true, opacity = glass }
+)
+float_center(
+	"float-zen-file-upload-menu",
+	{ initial_class = zen, title = "^(File Upload).*" },
+	{ 900, 500 },
+	{ stay_focused = true, opacity = glass }
+)
+
+-- Picture-in-Picture (any browser): small, pinned, keeps its aspect ratio.
+-- Replaces the old Zen-only PiP rule.
 hl.window_rule({
-	name = "float-xdg-desktop-portal-gtk",
-	match = {
-		class = "xdg-desktop-portal-gtk",
-	},
+	name = "pip",
+	match = { title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" },
 	float = true,
-	size = { 600, 500 },
-	center = true,
-	decorate = true,
-	stay_focused = true,
+	keep_aspect_ratio = true,
+	size = { "max(monitor_w, monitor_h)*0.25", "min(monitor_w, monitor_h)*0.25" },
+	pin = true,
 })
 
--- Gimp Submenu Rules
-hl.window_rule({
-	name = "float-gimp-submenus",
-	match = {
-		class = "script-fu",
-		initial_class = "script-fu",
-	},
-	float = true,
-	size = { 600, 500 },
-	center = true,
-	decorate = true,
-	stay_focused = true,
-})
+----------------------
+--- Downloads --------
+----------------------
 
--- Gimp PDF viewer
+-- AB Download Manager: dialogs float, the main window stays tiled
 hl.window_rule({
-	name = "float-gimp-pdf",
-	match = {
-		class = "file-pdf-load",
-		title = "Load PDF Image",
-	},
-	float = true,
-	center = true,
-	decorate = true,
-	opacity = "0.8 0.8",
-})
-
--- Zen Submenu Rules
-
--- Zen Download Submenu Rules
-hl.window_rule({
-	name = "float-zen-download-menu",
-	match = {
-		class = "zen",
-		title = "Library",
-	},
-	float = true,
-	center = true,
-	stay_focused = true,
-	decorate = true,
-	size = { 900, 500 },
-	opacity = "0.7 0.7",
-})
-
--- Zen Save as Image Submenu Rules
-hl.window_rule({
-	name = "float-zen-save-image-as-menu",
-	match = {
-		class = "zen",
-		title = "^(Save Image).*",
-	},
+	name = "float-abdownload-menu",
+	match = { class = "com-abdownloadmanager-desktop-AppKt" },
 	float = true,
 	center = true,
-	decorate = true,
-	stay_focused = true,
-	size = { 600, 500 },
-	opacity = "0.7 0.7",
 })
 
--- Zen File Upload Submenu Rules
 hl.window_rule({
-	name = "float-zen-file-upload-menu",
-	match = {
-		class = "zen",
-		title = "^(File Upload).*",
-	},
+	name = "tile-abdownload-app",
+	match = { class = "com-abdownloadmanager-desktop-AppKt", title = "AB Download Manager" },
 	float = true,
-	center = true,
-	decorate = true,
-	stay_focused = true,
-	size = { 900, 500 },
-	opacity = "0.7 0.7",
-})
-
--- Zen PiP Rules
-hl.window_rule({
-	name = "float-zen-pip",
-	match = {
-		class = "zen",
-		title = "Picture-in-Picture",
-	},
-	float = true,
-	center = true,
-	decorate = true,
-	stay_focused = true,
-	size = { 1000, 700 },
-})
-
--- Calculator Rules
-hl.window_rule({
-	name = "float-Qalculate",
-	match = {
-		class = "qalculate-gtk",
-		title = "Qalculate!",
-	},
-	float = true,
-	decorate = true,
-	size = { 400, 400 },
-	opacity = "0.8 0.8",
-})
-
--- Rnote Rules
-hl.window_rule({
-	name = "float-Rnote",
-	match = {
-		class = "com.github.flxzt.rnote",
-	},
-	opacity = "0.8 0.8",
-})
-
--- Image viewer rules
-hl.window_rule({
-	name = "float-imv",
-	match = {
-		class = "imv",
-		title = "^(imv -).*",
-	},
-	float = true,
-	center = true,
-	decorate = true,
-	size = { 1536, 864 },
-	stay_focused = true,
-})
-
--- Video Player Rules
-hl.window_rule({
-	name = "float-mpv",
-	match = {
-		class = "mpv",
-	},
-	float = true,
-	center = true,
-	decorate = true,
-	size = { 1536, 864 },
-})
-
--- Files Through Rofi
-hl.window_rule({
-	name = "float-rofi-files",
-	match = {
-		class = "rofi-nvim",
-	},
-	float = true,
-	center = true,
-	decorate = true,
-	size = { 1100, 800 },
-	opacity = "0.8 0.8",
-})
-
--- Files through Thunar
-hl.window_rule({
-	name = "float-thunar-files",
-	match = {
-		class = "thunar-nvim",
-	},
-	float = true,
-	center = true,
-	decorate = true,
-	size = { 1100, 800 },
-	opacity = "0.8 0.8",
-})
-
--- Files through Yazi
-hl.window_rule({
-	name = "float-yazi-nvim",
-	match = {
-		class = "yazi-nvim",
-	},
-	float = true,
-	center = true,
-	decorate = true,
 	size = { 1200, 800 },
-	opacity = "0.9 0.9",
 })
 
--- Volume Control Rules
-hl.window_rule({
-	name = "float-position-volume-control",
-	match = {
-		class = "org.pulseaudio.pavucontrol",
-		title = "Volume Control",
-	},
-	float = true,
-	size = { "(monitor_w * 0.35)", "(monitor_h * 0.32)" },
-	move = { 1050, 42 },
-	pin = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
+-------------------------------
+--- Pinned panels (top bar) ---
+-------------------------------
 
--- Network Menu Rules
-hl.window_rule({
-	name = "float-position-networkEditor",
-	match = {
-		class = "nm-connection-editor",
-		initial_class = "nm-connection-editor",
-	},
-	float = true,
-	size = { "(monitor_w * 0.25)", "(monitor_h * 0.3)" },
-	move = { 350, 42 },
-	pin = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
+panel(
+	"float-position-volume-control",
+	{ initial_class = "org.pulseaudio.pavucontrol", title = "Volume Control" },
+	{ "(monitor_w * 0.35)", "(monitor_h * 0.32)" },
+	{ 1050, 42 }
+)
 
-hl.window_rule({
-	name = "float-position-networkEditor-secondary",
-	match = {
-		class = "nm-connection-editor",
-		title = "^(Editing).*",
-	},
-	float = true,
-	size = { "(monitor_w * 0.25)", "(monitor_h * 0.3)" },
-	move = { 600, 250 },
-	pin = true,
-	stay_focused = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
+-- Network menu
+panel("float-position-network-editor", { initial_class = "nm-connection-editor" }, small_panel, { 350, 42 })
+panel(
+	"float-position-network-editor-secondary",
+	{ initial_class = "nm-connection-editor", title = "^(Editing).*" },
+	small_panel,
+	{ 600, 250 },
+	{ stay_focused = true }
+)
 
--- Bluetooth Menu Rules
-hl.window_rule({
-	name = "float-position-blueman",
-	match = {
-		class = "blueman-manager",
-		title = "Bluetooth Devices",
-	},
-	float = true,
-	size = { "(monitor_w * 0.25)", "(monitor_h * 0.3)" },
-	move = { 350, 42 },
-	pin = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
+-- Bluetooth menu
+panel(
+	"float-position-blueman",
+	{ initial_class = "blueman-manager", title = "Bluetooth Devices" },
+	small_panel,
+	{ 350, 42 }
+)
+panel(
+	"float-position-blueman-info",
+	{ initial_class = "blueman-manager", title = "blueman" },
+	small_panel,
+	{ 500, 240 },
+	{ stay_focused = true }
+)
+panel(
+	"float-position-blueman-about",
+	{ initial_class = "blueman-manager", title = "About blueman-manager" },
+	small_panel,
+	{ 350, 90 },
+	{ stay_focused = true }
+)
+panel(
+	"float-position-blueman-plugins",
+	{ initial_class = "blueman-applet", title = "Plugins" },
+	{ 600, 350 },
+	{ 500, 195 },
+	{ stay_focused = true }
+)
+panel(
+	"float-position-blueman-local-services",
+	{ initial_class = "blueman-services", title = "^(Local Services).*" },
+	{ 460, 360 },
+	{ 470, 180 },
+	{ stay_focused = true }
+)
 
-hl.window_rule({
-	name = "float-position-blueman-info",
-	match = {
-		class = "blueman-manager",
-		title = "blueman",
-	},
-	float = true,
-	size = { "(monitor_w * 0.25)", "(monitor_h * 0.3)" },
-	move = { 500, 240 },
-	pin = true,
-	stay_focused = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
+------------------------
+--- Global and system ---
+------------------------
 
-hl.window_rule({
-	name = "float-position-blueman-about",
-	match = {
-		class = "blueman-manager",
-		title = "About blueman-manager",
-	},
-	float = true,
-	size = { "(monitor_w * 0.25)", "(monitor_h * 0.3)" },
-	move = { 350, 90 },
-	pin = true,
-	stay_focused = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
-hl.window_rule({
-	name = "float-position-blueman-plugin",
-	match = {
-		class = "blueman-applet",
-		title = "Plugins",
-	},
-	float = true,
-	size = { 600, 350 },
-	move = { 500, 195 },
-	pin = true,
-	stay_focused = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
-hl.window_rule({
-	name = "float-position-blueman-local",
-	match = {
-		class = "blueman-services",
-		title = "^(Local Services).*",
-	},
-	float = true,
-	size = { 460, 360 },
-	move = { 470, 180 },
-	pin = true,
-	stay_focused = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Kvantum Rules
-hl.window_rule({
-	name = "float-kvantum",
-	match = {
-		class = "kvantummanager",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Kvantum Preview Rules
-hl.window_rule({
-	name = "float-kvantum-preview",
-	match = {
-		class = "kvantumpreview",
-	},
-	float = true,
-	size = { 700, 500 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Nwg-look rules
-hl.window_rule({
-	name = "float-nwg-look",
-	match = {
-		class = "nwg-look",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Qt test utility rules
-hl.window_rule({
-	name = "float-qt-test",
-	match = {
-		class = "qv4l2",
-	},
-	float = true,
-	stay_focused = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Qt video capture rules
-hl.window_rule({
-	name = "float-qt-video",
-	match = {
-		class = "qvidcap",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-})
-
--- Bssh rules
-hl.window_rule({
-	name = "float-bssh",
-	match = {
-		class = "bssh",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Bvnc rules
-hl.window_rule({
-	name = "float-bvnc",
-	match = {
-		class = "bvnc",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Localsend rules
-hl.window_rule({
-	name = "float-localsend",
-	match = {
-		class = "localsend",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Zathura rules
-hl.window_rule({
-	name = "float-zathura",
-	match = {
-		class = "org.pwmt.zathura",
-	},
-	--float = true,
-	float = false,
-	size = { 1000, 800 },
-	center = true,
-	decorate = true,
-	opacity = "0.8 0.8",
-})
-
--- Java Monitoring Console rules
-hl.window_rule({
-	name = "float-java-console",
-	match = {
-		class = "sun-tools-jconsole-JConsole",
-	},
-	float = true,
-	size = { 1000, 800 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- CMake rules
-hl.window_rule({
-	name = "float-cmake",
-	match = {
-		class = "cmake-gui",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Bulk Rename rules
-hl.window_rule({
-	name = "float-bulk-rename",
-	match = {
-		class = "Thunar",
-		title = "^(Bulk Rename).*",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Qt5ct rules
-hl.window_rule({
-	name = "float-qt5ct",
-	match = {
-		class = "qt5ct",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
--- Qt6ct rules
-hl.window_rule({
-	name = "float-qt6ct",
-	match = {
-		class = "qt6ct",
-	},
-	float = true,
-	size = { 1000, 700 },
-	center = true,
-	decorate = true,
-	opacity = "0.7 0.7",
-})
-
-hl.window_rule({
-	name = "rmpc",
-	match = {
-		class = "rmpc",
-	},
-	workspace = "special:music",
-	center = true,
-	decorate = true,
-	opacity = "0.65 0.65",
-})
-
--- Global are you sure confirm windows
+-- Global "are you sure" confirm windows
 hl.window_rule({
 	name = "global-are-you-sure",
 	match = {
@@ -596,21 +294,20 @@ hl.window_rule({
 	float = true,
 	size = { 400, 300 },
 	decorate = true,
-	opacity = "0.7 0.7",
+	opacity = glass,
 })
 
+-- Ignore maximize requests from apps
 hl.window_rule({
-	-- Ignore maximize requests from apps. You'll probably like this.
 	name = "suppress-maximize-events",
 	match = {
 		class = ".*",
 	},
 	suppress_event = "maximize",
 })
--- suppressMaximizeRule:set_enabled(false)
 
+-- Fix some dragging issues with XWayland
 hl.window_rule({
-	-- Fix some dragging issues with XWayland
 	name = "fix-xwayland-drags",
 	match = {
 		class = "^$",
@@ -623,32 +320,23 @@ hl.window_rule({
 	no_focus = true,
 })
 
--- Hyprland-run windowrule
+-- Hyprland-run
 hl.window_rule({
 	name = "move-hyprland-run",
-	match = { class = "hyprland-run" },
+	match = { initial_class = "hyprland-run" },
 	move = "20 monitor_h-120",
 	float = true,
 })
 
--- Hyprland share picker Rules
-hl.window_rule({
-	name = "float-hyprland-share-picker",
-	match = {
-		class = "hyprland-share-picker",
-	},
-	float = true,
-	center = true,
-	decorate = true,
-	size = { 800, 500 },
-})
+-- Hyprland share picker
+float_center("float-hyprland-share-picker", { initial_class = "hyprland-share-picker" }, { 800, 500 })
 
--- Force Hyprland authentication dialog to float true and center
--- hl.window_rule(){
+-- Force the Hyprland authentication dialog to float and center (disabled)
+-- hl.window_rule({
 --   name = "float-hyprpolkitagent",
 --   match = {
 --     class = "hyprpolkitagent",
---     title = "hyprpolkitagent"
+--     title = "hyprpolkitagent",
 --   },
 --   float = true,
 --   center = true,
@@ -661,7 +349,7 @@ hl.window_rule({
 --- Layer rules ---
 -------------------
 
--- Blur layerrule
+-- Blur layerrules
 hl.layer_rule({
 	match = { namespace = "waybar" },
 	blur = true,
@@ -705,6 +393,9 @@ hl.layer_rule({
 	animation = "fadeIn",
 })
 
--- Workspace Rules
+-----------------------
+--- Workspace rules ---
+-----------------------
+
 hl.workspace_rule({ workspace = "special:music", layout = "scrolling" })
 hl.workspace_rule({ workspace = "2", layout = "scrolling" })

@@ -1,8 +1,14 @@
+--------------------------------------------------------------------
+--- Core settings: monitor, autostart, input, misc, permissions, env ---
+--------------------------------------------------------------------
+
 ----------------
 --- MONITORS ---
 ----------------
 
--- See https://wiki.hypr.land/Configuring/Monitors/
+-- See https://wiki.hypr.land/Configuring/Basics/Monitors/
+-- Runs at 144Hz by default. A script drops it to 60Hz on battery (ACPI events),
+-- so avoid `hyprctl reload` on battery: it re-applies 144Hz.
 hl.monitor({
 	output = "eDP-1",
 	mode = "1920x1080@144",
@@ -10,47 +16,35 @@ hl.monitor({
 	scale = "1",
 })
 
--------------------
---- MY PROGRAMS ---
--------------------
-
--- See https://wiki.hypr.land/Configuring/Keywords/
-
--- Set programs that you use
-Terminal = "kitty"
-FileManager = "thunar"
-Menu = "bash $HOME/.local/bin/myScripts/utilities/menu_launcher.sh"
-Music = "bash $HOME/.config/hypr/scripts/toggleMusic.sh"
-
 -----------------
 --- AUTOSTART ---
 -----------------
 
--- Autostart necessary processes (like notifications daemons, status bars, etc.)
--- Or execute your favorite apps at launch like this:
-
+-- See https://wiki.hypr.land/Configuring/Basics/Autostart/
+-- hyprpolkitagent, mpd and mpDris2 are managed by systemd user services, not started here.
 hl.on("hyprland.start", function()
-	hl.exec_cmd("uwsm app -- awww-daemon")
-	hl.exec_cmd("uwsm app -- wl-paste --type text --watch cliphist store") -- Stores only text data
-	hl.exec_cmd("uwsm app -- wl-paste --type image --watch cliphist store") -- Stores only image data
-	hl.exec_cmd("uwsm app -- waybar")
-	hl.exec_cmd("uwsm app -- playerctld")
-	hl.exec_cmd("uwsm app -- hypridle")
-	hl.exec_cmd("sleep 1 && uwsm app -- keepassxc")
-	--hl.exec_cmd("uwsm app –- swaync")
+	hl.exec_cmd("uwsm-app -- awww-daemon")
+	hl.exec_cmd("uwsm-app -- hypridle")
+	hl.exec_cmd("uwsm-app -- playerctld")
+	hl.exec_cmd("uwsm-app -- waybar")
+	hl.exec_cmd("uwsm-app -- wl-paste --type text --watch cliphist store") -- Stores only text data
+	hl.exec_cmd("uwsm-app -- wl-paste --type image --watch cliphist store") -- Stores only image data
+	hl.exec_cmd("sleep 1 && uwsm-app -- keepassxc")
+	-- hl.exec_cmd("uwsm-app -- swaync")
 end)
 
 -------------
 --- INPUT ---
 -------------
 
--- https://wiki.hypr.land/Configuring/Variables/#input
+-- https://wiki.hypr.land/Configuring/Basics/Variables/#input
 hl.config({
 	input = {
 		kb_layout = "us",
 		kb_variant = "",
 		kb_model = "",
 		kb_options = "",
+		-- kb_options = "caps:swapescape", -- Caps/Esc swap is done at kernel level instead
 		kb_rules = "",
 
 		repeat_rate = 35,
@@ -66,106 +60,49 @@ hl.config({
 			natural_scroll = false,
 		},
 	},
+	render = {
+		direct_scanout = 2,
+	},
+	xwayland = {
+		force_zero_scaling = true,
+	},
 })
 
--- Example per-device config
--- See https://wiki.hypr.land/Configuring/Keywords/#per-device-input-configs for more
-hl.device({
-	name = "epic-mouse-v1",
-	sensitivity = -0.5,
-})
+------------
+--- MISC ---
+------------
 
-----------------
---- Gestures ---
-----------------
-
--- Pinch in to zoom in
-hl.gesture({
-	fingers = 2,
-	direction = "pinchin",
-	mods = "SUPER",
-	action = "cursorZoom",
-	---@diagnostic disable-next-line: assign-type-mismatch
-	zoom_level = "1.1",
-	mode = "live",
-})
-
--- Pinch out to zoom out
-hl.gesture({
-	fingers = 2,
-	direction = "pinchout",
-	mods = "SUPER",
-	action = "cursorZoom",
-	---@diagnostic disable-next-line: assign-type-mismatch
-	zoom_level = "0.9",
-	mode = "live",
-})
-
--- move between workspaces
-hl.gesture({
-	fingers = 3,
-	direction = "horizontal",
-	mods = "SUPER",
-	scale = 0.5,
-	action = "workspace",
-})
-
--- scroll within layout
-hl.gesture({
-	fingers = 3,
-	direction = "horizontal",
-	action = "scroll_move",
-})
-
--- open app launcher
-hl.gesture({
-	fingers = 3,
-	direction = "up",
-	action = function()
-		hl.exec_cmd(Menu)
-	end,
-})
-
--- switch to Full screen
-hl.gesture({
-	fingers = 3,
-	direction = "up",
-	mods = "SUPER",
-	action = "fullscreen",
-})
-
--- open music workspace
-hl.gesture({
-	fingers = 3,
-	direction = "down",
-	action = function()
-		hl.exec_cmd(Music)
-	end,
-})
-
--- switch to Float
-hl.gesture({
-	fingers = 3,
-	direction = "down",
-	mods = "SUPER",
-	action = function()
-		hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
-		hl.dispatch(hl.dsp.window.resize({ x = 1200, y = 800 }))
-		hl.dispatch(hl.dsp.window.center())
-	end,
+hl.config({
+	ecosystem = {
+		no_donation_nag = true,
+		no_update_news = true,
+	},
+	misc = {
+		enable_swallow = false,
+		swallow_regex = "(kitty|ghostty|[Kk]onsole|Alacritty|gnome-terminal|xfce[0-9]?-terminal)",
+		middle_click_paste = true,
+		force_default_wallpaper = 0, -- Set to 0 or 1 to disable the anime mascot wallpapers
+		disable_hyprland_logo = true, -- If true disables the random hyprland logo / anime girl background
+		disable_splash_rendering = true,
+		vrr = 2,
+	},
+	binds = {
+		workspace_back_and_forth = true,
+		hide_special_on_workspace_change = true,
+	},
 })
 
 -------------------
 --- PERMISSIONS ---
 -------------------
 
--- See https://wiki.hypr.land/Configuring/Permissions/
+-- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Permissions/
 -- Please note permission changes here require a Hyprland restart and are not applied on-the-fly
 -- for security reasons
 
 -- hl.config({
 --   ecosystem = {
---     enforce_permissions = true
+--     enforce_permissions = true,
 --   },
 -- })
 
@@ -177,42 +114,36 @@ hl.gesture({
 --- ENVIRONMENT VARIABLES ---
 -----------------------------
 
--- Set them in ~/.config/uwsm/env & env-hyprland
--- In env put majority of environment variables
--- In env-hyprland put hyprland related environment variables (cursors, themes etc.)
+-- These can also live in ~/.config/uwsm/env (general) and ~/.config/uwsm/env-hyprland (Hyprland-only,
+-- e.g. cursors). They are kept here for now.
+-- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Environment-variables/
+-- hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
+-- hl.env("XDG_SESSION_TYPE", "wayland")
+-- hl.env("XDG_SESSION_DESKTOP", "Hyprland")
 
--- See https://wiki.hypr.land/Configuring/Environment-variables/
---hl.env("XDG_CURRENT_DESKTOP",  "Hyprland")
---hl.env("XDG_SESSION_TYPE",    "wayland")
---hl.env("XDG_SESSION_DESKTOP", "Hyprland")
-
--- Environment-variables for themes
+-- Cursor and theme
 hl.env("HYPRCURSOR_THEME", "rose-pine-hyprcursor")
 hl.env("XCURSOR_THEME", "BreezeX-RosePine-Linux")
 hl.env("XCURSOR_SIZE", "27")
 hl.env("HYPRCURSOR_SIZE", "27")
 
--------------------------------------------
---- Rules to make apps work with nvidia ---
--------------------------------------------
-
--- Environment-variables needed for Nvidia GPU
-hl.env("LIBVA_DRIVER_NAME", "nvidia")
+-- Hybrid graphics: Intel video decoding, NVIDIA for GLX
+hl.env("LIBVA_DRIVER_NAME", "iHD")
 hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
--- hl.env("GBM_BACKEND",               "nvidia-drm")
+-- hl.env("GBM_BACKEND", "nvidia-drm")
 
--- To enable native Wayland support for most Electron apps
+-- Native Wayland support for most Electron apps
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
--- To enable hardware video acceleration
+-- Hardware video acceleration
 hl.env("NVD_BACKEND", "direct")
 
--- To disable GSYNC
+-- Disable GSYNC
 hl.env("__GL_GSYNC_ALLOWED", "0")
 
 -- Qt style override
 hl.env("QT_QPA_PLATFORMTHEME", "qt5ct")
 hl.env("QT_STYLE_OVERRIDE", "kvantum")
 
--- Obs Wayland support
+-- OBS Wayland support
 hl.env("OBS_USE_EGL", "1")
