@@ -9,13 +9,13 @@ auto = false
 notice = false
 
 [palette]
-blue = '#89b1fa'
-cyan = '#94e2d5'
+blue = 'blue'
+cyan = 'cyan'
 grey = '#6c6c6c'
-yellow = '#eac16c'
-magenta = '#cba6f7'
-red = '#f38ba8'
-white = '#89984'
+yellow = 'yellow'
+magenta = 'magenta'
+red = 'red'
+white = 'white'
 
 [[blocks]]
 type = 'prompt'
@@ -33,7 +33,7 @@ arch = "󰣇"
 
 [[blocks.segments]]
 template = '{{ .UserName }}@{{ .HostName }} '
-foreground = 'p:yellow'
+foreground = 'p:red'
 type = 'session'
 style = 'plain'
 
@@ -41,8 +41,8 @@ style = 'plain'
 type = 'path'
 style = 'plain'
 foreground_templates = [
-  "{{if gt .Code 0}}p:red{{end}}",
-  "{{if eq .Code 0}}p:white{{end}}",
+  "{{if gt .Code 0}}p:white{{end}}",
+  "{{if eq .Code 0}}p:yellow{{end}}",
 ]
 background = 'transparent'
 foreground = 'p:cyan'
@@ -84,7 +84,7 @@ template = "  {{ if .Error }}{{ .Error }}{{ else }}{{ if .Venv }}{{ .Venv }} 
 type = 'executiontime'
 style = 'plain'
 background = 'transparent'
-template = '<p:yellow>  </><p:red>{{ .FormattedMs }} </>'
+template = '<p:white>  </><p:red>{{ .FormattedMs }} </>'
 
 [blocks.segments.properties]
 threshold = 5000
