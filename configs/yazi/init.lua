@@ -1,7 +1,8 @@
 require("full-border"):setup()
 require("folder-rules"):setup()
+require("duckdb"):setup()
 
--- Show symlink in status bar --
+-- Show symlink target in status bar --
 Status:children_add(function(self)
 	local h = self._current.hovered
 	if h and h.link_to then
@@ -10,19 +11,13 @@ Status:children_add(function(self)
 	return ""
 end, 3300, Status.LEFT)
 
--- Show user/group of files in status bar --
-Status:children_add(function()
-	-- Safety check: ensure cx and active window exist
-	if not cx or not cx.active or not cx.active.current.hovered then
+-- Show user:group of the hovered file in status bar --
+Status:children_add(function(self)
+	local h = self._current.hovered
+	if not h or ya.target_family() ~= "unix" then
 		return ""
 	end
 
-	local h = cx.active.current.hovered
-	if ya.target_family() ~= "unix" then
-		return ""
-	end
-
-	-- We use the ui global safely inside the function
 	return ui.Line({
 		ui.Span(ya.user_name(h.cha.uid) or tostring(h.cha.uid)):fg("magenta"),
 		":",
@@ -31,11 +26,10 @@ Status:children_add(function()
 	})
 end, 500, Status.RIGHT)
 
--- Show username and hostname in header --
+-- Show username@hostname in header --
 Header:children_add(function()
 	if ya.target_family() ~= "unix" then
 		return ""
 	end
-	-- Use ya.user_name() and ya.host_name() directly here
-	return ui.Span(ya.user_name() .. "@" .. ya.host_name() .. ":"):fg("blue")
+	return ui.Span((ya.user_name() or "") .. "@" .. (ya.host_name() or "") .. ":"):fg("blue")
 end, 500, Header.LEFT)
