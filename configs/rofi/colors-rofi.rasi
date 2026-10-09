@@ -6,10 +6,10 @@
     foreground: #e4e1e9;
     
     /* Use primary for the 'selected' bar so it stands out */
-    selected-normal-background: #bec2ff;
+    selected-normal-background: #c2c1ff;
     
     /* Use on-primary for text inside the selected bar so it's readable */
-    selected-active-background: #262b60;
+    selected-active-background: #2a2a60;
     
     /* Use error for alerts */
     selected-urgent-background: #ffb4ab;
