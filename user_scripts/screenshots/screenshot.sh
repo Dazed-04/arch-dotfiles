@@ -78,13 +78,18 @@ case "$MODE" in
   echo "--region     #Capture a Region"
   echo "--window     #Capture a window"
   echo "--smart      #Smart screenshot"
-  echo "with --edit  #Edit using sally"
+  echo "with --edit  #Edit using satty"
+  exit 1
   ;;
 esac
 
 [ -z "$SELECTION" ] && exit 0
 
 satty_cmd=(
+  env
+  __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+  VK_DRIVER_FILES=/usr/share/vulkan/icd.d/intel_icd.json
+  GSK_RENDERER=ngl
   satty
   --filename -
   --output-filename "$FULL_PATH"
