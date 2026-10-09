@@ -21,7 +21,7 @@ if [[ -z "$@" ]]; then
     "󰻠  System Monitor (btop)" \
     "$wb_label" \
     "󰄰  Text OCR" \
-    "󱐋  Power Saving (PowerTop)"
+    "󱐋  Power Saving (Toggle)"
   exit 0
 fi
 
@@ -67,7 +67,19 @@ case "$1" in
   ;;
 *"Power Saving"*)
   pkill rofi
-  pkexec powertop --auto-tune >/dev/null
-  notify-send "PowerTop" "Auto-tune applied"
+  if [[ "$(powerprofilesctl get)" == "power-saver" ]]; then
+    powerprofilesctl set balanced
+    notify-send "Power Saving" "Off: balanced profile"
+  else
+    powerprofilesctl set power-saver
+    if pkexec sh -c '
+      for f in /sys/bus/pci/devices/*/power/control; do echo auto > "$f" 2>/dev/null; done
+      echo 1 > /sys/module/snd_hda_intel/parameters/power_save
+      exit 0'; then
+      notify-send "Power Saving" "On: power-saver profile + PCI/audio power saving"
+    else
+      notify-send "Power Saving" "Cancelled, only the profile was changed"
+    fi
+  fi
   ;;
 esac
