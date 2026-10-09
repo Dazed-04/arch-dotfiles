@@ -29,7 +29,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("uwsm-app -- waybar")
 	hl.exec_cmd("uwsm-app -- wl-paste --type text --watch cliphist store") -- Stores only text data
 	hl.exec_cmd("uwsm-app -- wl-paste --type image --watch cliphist store") -- Stores only image data
-	hl.exec_cmd("sleep 1 && uwsm-app -- keepassxc")
+	hl.exec_cmd("sleep 2 && uwsm-app -- keepassxc")
 	-- hl.exec_cmd("uwsm-app -- swaync")
 end)
 
