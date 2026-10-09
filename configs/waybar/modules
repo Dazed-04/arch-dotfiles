@@ -85,14 +85,6 @@
 	"tooltip-format": "{timeTo} | {power}w",
 },
 
-"actions": {
-	"on-click-right": "mode",
-	"on-click-forward": "tz_up",
-	"on-click-backward": "tz_down",
-	"on-scroll-up": "shift_up",
-	"on-scroll-down": "shift_down"
-},
-
 "idle_inhibitor": {
 	"format": "{icon}",
 	"format-icons": {
@@ -136,7 +128,10 @@
 	"format": "{icon} {volume}% |",
 	"format-bluetooth": "<span rise='10'>{icon}</span> {volume}% |",
 	"format-muted": "󰖁 MUTED |",
-	"format-icons": {
+	"ignored-sinks": [
+		"Easy Effects Sink"
+	],
+  "format-icons": {
 		"headphone": "",
 		"hands-free": "",
 		"headset": "",
@@ -145,9 +140,6 @@
 		"car": "",
 		"default": [
 			"", "", "󰕾",  ""
-		],
-		"ignored-sinks": [
-			"Easy Effects Sink"
 		],
 	},
 	"scroll-step": 5.0,
@@ -257,6 +249,7 @@
 	"tooltip": true,
 },
 
+// ---- SPARE (not in the bar) ----
 "custom/swaync": {
 	"tooltip": true,
 	"format": "{icon} {}",
@@ -349,7 +342,7 @@
     "transition-duration": 300,
     "transition-left-to-right": false
   },
-  "modules": ["custom/arrow-right", "custom/cpu", "custom/gpu", "custom/memory"]
+  "modules": ["custom/arrow-right", "custom/cpu", "custom/gpu", "custom/memory", "custom/storage"]
 },
 
 "custom/arrow-right": {
@@ -360,8 +353,8 @@
 "custom/storage": {
   "format": "{}",
   "return-type": "json",
-  "interval": 5,
-  //"exec": "~/.config/waybar/scripts/waybar-storage.py",
+  "interval": 30,
+  "exec": "~/.config/waybar/scripts/waybar-storage.py",
   "on-click": "baobab", // Set to your own analyser if you like
   "on-click-right": "gnome-disks" // as above
 },
@@ -369,7 +362,7 @@
 "custom/memory": {
   "format": "{}",
   "return-type": "json",
-  "interval": 5,
+  "interval": 30,
   "exec": "~/.config/waybar/scripts/waybar-memory.py",
   "on-click": ""
 },
@@ -377,7 +370,7 @@
 "custom/cpu": {
   "format": "{}",
   "return-type": "json",
-  "interval": 5,
+  "interval": 10,
   "exec": "~/.config/waybar/scripts/waybar-cpu.py",
   "on-click": "~/.local/bin/myScripts/utilities/btop.sh", // Opens btop directly
 },
@@ -385,7 +378,7 @@
 "custom/gpu": {
   "format": "{}",
   "return-type": "json",
-  "interval": 5,
+  "interval": 15,
   "exec": "~/.config/waybar/scripts/waybar-gpu.py",
   "on-click": "~/.local/bin/myScripts/utilities/btop.sh", // Opens btop directly
 },
@@ -564,7 +557,7 @@
     "transition-duration": 300,
     "transition-left-to-right": true,
   },
-  "modules": ["custom/arrow-left", "custom/notifications", "custom/weather", "custom/theme-switcher"],
+  "modules": ["custom/arrow-left", "custom/notifications", "custom/weather"],
 },
 
 "custom/arrow-left": {
@@ -611,29 +604,29 @@
 			"weekdays": "<span color='#ffcc66'><b>{}</b></span>",
 			"today": "<span color='#ff6699'><b><u>{}</u></b></span>"
 		}
-	}
-},
-
-"actions": {
+	},
+  "actions": {
 	"on-click-right": "mode",
 	"on-click-forward": "tz_up",
 	"on-click-backward": "tz_down",
 	"on-scroll-up": "shift_up",
 	"on-scroll-down": "shift_down"
+  },
 },
 
-},
 
+// ---- SPARE (not in the bar) ----
 "group/power": {
   "orientation": "inherit",
   "drawer": {
     "transition-duration": 300,
     "transition-left-to-right": false,
   },
-  "modules": ["battery", "power-profiles-daemon"],
+  "modules": ["battery#compact", "power-profiles-daemon"],
 },
 
-"battery": {
+// ---- SPARE (not in the bar) ----
+"battery#compact": {
   "states": {
     "good": 95,
     "warning": 30,
@@ -642,7 +635,7 @@
   "format": "{icon}",
   "format-charging": "{icon} ",
   "format-plugged": "{icon} ",
-  "format-not-charging": "{icon} "
+  "format-not-charging": "{icon} ",
   "format-full": "<span color='#82A55F'><b>{icon}</b></span>",
   "format-icons": [
     "󰁻",
@@ -655,6 +648,7 @@
   "tooltip-format": "{timeTo} {capacity} % | {power} W"
 },
 
+// ---- SPARE (not in the bar) ----
 "power-profiles-daemon": {
   "format": "{icon}",
   "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
@@ -667,8 +661,7 @@
   }
 },
 
-}
-
+// ---- SPARE (not in the bar) ----
 "mpd": {
   "format": "{stateIcon} {consumeIcon}{randomIcon}{repeatIcon}{singleIcon}{artist} - {album} - {title} ({elapsedTime:%M:%S}/{totalTime:%M:%S}) ",
   "format-disconnected": "Disconnected ",
@@ -693,4 +686,6 @@
   },
   "tooltip-format": "MPD (connected)",
   "tooltip-format-disconnected": "MPD (disconnected)"
+},
+
 }
