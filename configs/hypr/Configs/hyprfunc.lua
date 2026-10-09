@@ -129,14 +129,14 @@ hl.env("HYPRCURSOR_SIZE", "27")
 
 -- Hybrid graphics: Intel video decoding, NVIDIA for GLX
 hl.env("LIBVA_DRIVER_NAME", "iHD")
-hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+-- hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 -- hl.env("GBM_BACKEND", "nvidia-drm")
 
 -- Native Wayland support for most Electron apps
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
 -- Hardware video acceleration
-hl.env("NVD_BACKEND", "direct")
+-- hl.env("NVD_BACKEND", "direct")
 
 -- Disable GSYNC
 hl.env("__GL_GSYNC_ALLOWED", "0")
