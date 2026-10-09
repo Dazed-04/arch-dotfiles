@@ -181,7 +181,6 @@ yay -S rmpc spicetify-cli matugen oh-my-posh wlogout swaync
 
 - Configs are tailored to my specific setup and may need adjustments for yours
 - Some scripts reference absolute paths to `/home/Dazed/` — you'll need to update these
-- The rmpc layout uses a custom theme with cava visualizer, lyrics pane, and album art
 
 ---
 
