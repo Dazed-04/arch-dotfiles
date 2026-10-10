@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-import glob
+import html
 import json
 import os
 import pathlib
-import pickle
+import re
 import subprocess
 import time
 
@@ -13,9 +13,14 @@ import psutil
 # CONFIGURATION
 # ---------------------------------------------------
 CPU_ICON_GENERAL = ""
-HISTORY_FILE = "/tmp/waybar_cpu_history.pkl"
-NAME_COL_WIDTH = 26
 GUTTER = " " * 2
+CACHE_DIR = pathlib.Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
+HISTORY_FILE = CACHE_DIR / "waybar_cpu_history.json"
+RAPL_PATH = "/sys/class/powercap/intel-rapl:0/energy_uj"
+SAMPLE_SECS = 0.4  # utilisation sampling window
+CORE_HISTORY_SECS = 600  # keep the last 10 minutes of per-core samples
+SUDO_RETRY_SECS = 300  # back-off after a failed sudo call
+
 
 # ---------------------------------------------------
 # THEME & COLORS
@@ -59,24 +64,6 @@ def load_theme_colors():
 
 COLORS = load_theme_colors()
 
-COLOR_TABLE = [
-    {"color": COLORS["blue"], "cpu_gpu_temp": (0, 35), "cpu_power": (0.0, 30)},
-    {"color": COLORS["cyan"], "cpu_gpu_temp": (36, 45), "cpu_power": (31.0, 60)},
-    {"color": COLORS["green"], "cpu_gpu_temp": (46, 54), "cpu_power": (61.0, 90)},
-    {"color": COLORS["yellow"], "cpu_gpu_temp": (55, 65), "cpu_power": (91.0, 120)},
-    {
-        "color": COLORS["bright_yellow"],
-        "cpu_gpu_temp": (66, 75),
-        "cpu_power": (121.0, 150),
-    },
-    {
-        "color": COLORS["bright_red"],
-        "cpu_gpu_temp": (76, 85),
-        "cpu_power": (151.0, 180),
-    },
-    {"color": COLORS["red"], "cpu_gpu_temp": (86, 999), "cpu_power": (181.0, 999)},
-]
-
 
 def c(text, color):
     return f"<span foreground='{color}'>{text}</span>"
@@ -98,37 +85,77 @@ def get_alert_color(val, warn=70, crit=85):
     return None, False
 
 
-def get_rapl_path():
-    base = "/sys/class/powercap"
-    if not os.path.exists(base):
-        return None
-    paths = glob.glob(f"{base}/*/energy_uj")
-    for p in paths:
-        if "intel-rapl:0" in p or "package" in p:
-            return p
-    return paths[0] if paths else None
-
-
 # ---------------------------------------------------
 # DATA COLLECTION & HISTORY
 # ---------------------------------------------------
 
 
-def get_history():
-    defaults = {"energy": 0, "time": 0, "core_samples": [], "peak_temp": 0}
+def read_cpu_name(fallback):
+    """Model name from /proc/cpuinfo, tidied up for the tooltip header."""
     try:
-        with open(HISTORY_FILE, "rb") as f:
-            data = pickle.load(f)
+        for line in pathlib.Path("/proc/cpuinfo").read_text().splitlines():
+            if line.startswith("model name"):
+                name = line.split(":", 1)[1]
+                for junk in ("(R)", "(TM)", "(tm)", " CPU"):
+                    name = name.replace(junk, "")
+                name = re.sub(r"\s*@.*$", "", name)
+                name = re.sub(r"^\d+(st|nd|rd|th) Gen ", "", name.strip())
+                return html.escape(" ".join(name.split()))
+    except Exception:
+        pass
+    return fallback
+
+
+def get_history():
+    defaults = {"energy": 0, "time": 0, "samples": [], "sudo_fail": 0}
+    try:
+        data = json.loads(HISTORY_FILE.read_text())
+        if isinstance(data, dict):
             return {**defaults, **data}
-    except:
-        return defaults
+    except Exception:
+        pass
+    return defaults
+
+
+def save_history(data):
+    try:
+        tmp = HISTORY_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data))
+        tmp.replace(HISTORY_FILE)
+    except Exception:
+        pass
+
+
+def read_energy_uj(history, now):
+    """RAPL is root-only: try a direct read, then the pinned sudo rule."""
+    try:
+        return int(pathlib.Path(RAPL_PATH).read_text())
+    except PermissionError:
+        pass
+    except Exception:
+        return None
+    if now - history["sudo_fail"] < SUDO_RETRY_SECS:
+        return None
+    try:
+        out = subprocess.run(
+            ["sudo", "-n", "/usr/bin/cat", RAPL_PATH],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        if out.returncode == 0:
+            return int(out.stdout.strip())
+    except Exception:
+        pass
+    history["sudo_fail"] = now  # don't hammer sudo (faillock!) if the rule is missing
+    return None
 
 
 history = get_history()
 now = time.time()
-cpu_name = "Intel i7 13650HX"
+cpu_name = read_cpu_name("Intel i7 13650HX")
 
-# 1. Temp and Freq
+# 1. Temp
 max_cpu_temp = 0
 try:
     temps = psutil.sensors_temperatures() or {}
@@ -136,53 +163,76 @@ try:
         if label in temps:
             max_cpu_temp = int(max(t.current for t in temps[label]))
             break
-except:
+except Exception:
     pass
 
-
-# 2. Power
+# 2. Frequency and power
 freq = psutil.cpu_freq()
 curr_f, max_f = (freq.current / 1000, freq.max / 1000) if freq else (0, 0)
-cpu_power = 0.0
-rapl_path = get_rapl_path()
-if rapl_path:
+cpu_power = None  # None = unreadable (no sudo rule yet, first run or counter wrap)
+curr_energy = read_energy_uj(history, now)
+if curr_energy is not None:
+    if history["energy"] > 0 and now > history["time"]:
+        delta = curr_energy - history["energy"]
+        if delta >= 0:  # negative means the counter wrapped
+            cpu_power = (delta / 1_000_000) / (now - history["time"])
+    history["energy"] = curr_energy
+    history["time"] = now
+
+# 3. Utilisation: one shared sampling window for cores and processes
+procs = []
+for p in psutil.process_iter(["name"]):
     try:
-        with open(rapl_path, "r") as f:
-            curr_energy = int(f.read().strip())
-        if history["energy"] > 0 and now > history["time"]:
-            energy_delta = curr_energy - history["energy"]
-            time_delta = now - history["time"]
-            cpu_power = (energy_delta / 1_000_000) / time_delta
-        history["energy"] = curr_energy
-        history["time"] = now
-    except:
+        p.cpu_percent(None)  # first call only sets the baseline
+        procs.append(p)
+    except psutil.Error:
         pass
 
-# 3. CPU Utilization
-per_core_now = psutil.cpu_percent(interval=None, percpu=True)
-history["core_samples"].append(per_core_now)
-if len(history["core_samples"]) > 600:
-    history["core_samples"].pop(0)
-with open(HISTORY_FILE, "wb") as f:
-    pickle.dump(history, f)
+per_core_now = psutil.cpu_percent(interval=SAMPLE_SECS, percpu=True)
+total_usage = sum(per_core_now) / max(len(per_core_now), 1)
 
-# Calculate the actual average per core
-avg_per_core = [
-    sum(c) / len(history["core_samples"]) for c in zip(*history["core_samples"])
+top_procs = []
+for p in procs:
+    try:
+        name = p.info["name"] or ""
+        if p.pid == os.getpid() or "waybar" in name:
+            continue
+        top_procs.append((p.cpu_percent(None), name))
+    except psutil.Error:
+        pass
+top_procs.sort(reverse=True)
+
+history.pop("core_samples", None)  # key from the old history format
+# samples are [timestamp, per-core list] pairs, trimmed by age instead of by count
+samples = [
+    s
+    for s in history.get("samples", [])
+    if isinstance(s, list)
+    and len(s) == 2
+    and isinstance(s[0], (int, float))
+    and isinstance(s[1], list)
+    and now - s[0] <= CORE_HISTORY_SECS
 ]
-total_usage = psutil.cpu_percent(interval=None)
+samples.append([now, per_core_now])
+history["samples"] = samples
+save_history(history)
+avg_per_core = [sum(col) / len(col) for col in zip(*(s[1] for s in samples))]
 
 # ---------------------------------------------------
 # THRESHOLD FORMATTING
 # ---------------------------------------------------
 t_clr, t_act = get_alert_color(max_cpu_temp, 75, 85)
 u_clr, u_act = get_alert_color(total_usage, 70, 85)
-p_clr, p_act = get_alert_color(cpu_power, 100, 140)
+p_clr, p_act = get_alert_color(cpu_power or 0, 100, 140)
 
-temp_text = c(f"{max_cpu_temp}°C", t_clr) if t_act else f"{max_cpu_temp}°C"
 util_tt = c(f"{total_usage:.0f}%", u_clr) if u_act else f"{total_usage:.0f}%"
 temp_tt = c(f"{max_cpu_temp}°C", t_clr) if t_act else f"{max_cpu_temp}°C"
-pwr_tt = c(f"{cpu_power:.1f} W", p_clr) if p_act else f"{cpu_power:.1f} W"
+if cpu_power is None:
+    pwr_tt = c("N/A", COLORS["bright_black"])
+elif p_act:
+    pwr_tt = c(f"{cpu_power:.1f} W", p_clr)
+else:
+    pwr_tt = f"{cpu_power:.1f} W"
 
 # ---------------------------------------------------
 # TOOLTIP CONSTRUCTION
@@ -250,27 +300,12 @@ for title, data, is_proc in [
 ]:
     tooltip_lines.append(f"\n{separator}\n    {title}\n")
     if is_proc:
-        try:
-            ps = (
-                subprocess.check_output(
-                    ["ps", "-eo", "pcpu,comm", "--sort=-pcpu", "--no-headers"],
-                    text=True,
-                )
-                .strip()
-                .split("\n")
-            )
-            for line in ps[:4]:
-                parts = line.split(None, 1)
-                if len(parts) < 2 or "waybar" in parts[1]:
-                    continue
-                val, name = float(parts[0]), parts[1][:15]
-                clr = get_stealth_color(val)
-                val_str = c(f"{val:>5.1f}%", clr) if clr else f"{val:>5.1f}%"
-                tooltip_lines.append(
-                    f" • {name + ':':<18}{GUTTER}{GUTTER}{GUTTER}{val_str}"
-                )
-        except:
-            pass
+        for val, name in top_procs[:4]:
+            label = html.escape((name[:15] + ":").ljust(18))
+            clr = get_stealth_color(val)
+            val_str = c(f"{val:>5.1f}%", clr) if clr else f"{val:>5.1f}%"
+            tooltip_lines.append(f" • {label:<18}{GUTTER}{GUTTER}{GUTTER}{val_str}")
+
     else:
         sorted_cores = sorted(enumerate(data), key=lambda x: x[1], reverse=True)[:3]
         for i, u in sorted_cores:
@@ -308,7 +343,6 @@ print(
             "tooltip": final_tooltip,
             "markup": "pango",
             "class": "cpu",
-            "click-events": True,
         }
     )
 )

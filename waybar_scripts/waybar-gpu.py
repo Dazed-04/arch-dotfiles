@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import glob
 import json
 import os
 import pathlib
 import subprocess
+import sys
 
 # ---------------------------------------------------
 # CONFIGURATION
@@ -18,6 +20,34 @@ try:
     import tomllib
 except ImportError:
     tomllib = None
+
+
+IGNORED_CLIENTS = {
+    "swaync",
+    "Hyprland",
+    "hyprpolkitagent",
+    "Xwayland",
+    "nvidia-powerd",
+    "Xorg",
+}
+
+
+def nvidia_clients():
+    """Names of processes (other than idle desktop ones) holding /dev/nvidia*. Never wakes the GPU."""
+    names = set()
+    for fd_dir in glob.glob("/proc/[0-9]*/fd"):
+        try:
+            for fd in os.listdir(fd_dir):
+                try:
+                    if os.readlink(f"{fd_dir}/{fd}").startswith("/dev/nvidia"):
+                        comm = pathlib.Path(fd_dir).parent / "comm"
+                        names.add(comm.read_text().strip())
+                        break
+                except OSError:
+                    pass
+        except OSError:
+            pass
+    return names - IGNORED_CLIENTS
 
 
 def load_theme_colors():
@@ -37,7 +67,7 @@ def load_theme_colors():
         data = tomllib.loads(theme_path.read_text())
         colors = data.get("colors", {}).get("normal", {})
         return {**defaults, **colors}
-    except:
+    except Exception:
         return defaults
 
 
@@ -62,7 +92,7 @@ def get_color(value, metric_type):
             low, high = entry[metric_type]
             if low <= val <= high:
                 return entry["color"]
-    except:
+    except Exception:
         pass
     return COLORS["white"]
 
@@ -70,6 +100,49 @@ def get_color(value, metric_type):
 # ---------------------------------------------------
 # DATA EXTRACTION
 # ---------------------------------------------------
+def dgpu_runtime_status():
+    for dev in pathlib.Path("/sys/bus/pci/devices").iterdir():
+        try:
+            if (dev / "vendor").read_text().strip() != "0x10de":
+                continue
+            if (
+                not (dev / "class").read_text().startswith("0x03")
+            ):  # skip the audio function
+                continue
+            return (dev / "power/runtime_status").read_text().strip()
+        except OSError:
+            continue
+    return "unknown"
+
+
+def num(s, cast=float, default=0):
+    try:
+        return cast(s)
+    except (TypeError, ValueError):
+        return default
+
+
+status = dgpu_runtime_status()
+if status in ("suspended", "suspending") or not nvidia_clients():
+    label = "spnd" if status in ("suspended", "suspending") else "idle"
+    tip = (
+        f"<span font='JetBrainsMono Nerd Font' size='11000'>"
+        f"{LEFT_PAD}{c(f'{GPU_ICON}  GPU - RTX 4060 ', COLORS['green'])}\n"
+        f"{LEFT_PAD}─────────────────\n"
+        f"{LEFT_PAD * 4} dGPU {label}</span>"
+    )
+    print(
+        json.dumps(
+            {
+                "text": f"<span size='13000'>{GPU_ICON}</span><span rise='700'> {label}</span>",
+                "tooltip": tip,
+                "markup": "pango",
+                "class": "gpu",
+            }
+        )
+    )
+    sys.exit(0)
+
 gpu_percent, gpu_temp, gpu_power, fan_speed = 0, 0, 0.0, 0
 vram_used, vram_total = 0, 0
 gpu_name = "RTX 4060"
@@ -80,16 +153,16 @@ try:
         "--query-gpu=utilization.gpu,temperature.gpu,power.draw,fan.speed,memory.used,memory.total",
         "--format=csv,noheader,nounits",
     ]
-    output = subprocess.check_output(cmd, text=True).strip()
-    m = [x.strip() for x in output.split(",")]
-
-    gpu_percent = int(m[0])
-    gpu_temp = int(m[1])
-    gpu_power = float(m[2])
-    fan_speed = int(m[3]) if m[3] != "[N/A]" else 0
-    vram_used = int(m[4])
-    vram_total = int(m[5])
-except:
+    m = [
+        x.strip() for x in subprocess.check_output(cmd, text=True, timeout=3).split(",")
+    ]
+    gpu_percent = num(m[0], int)
+    gpu_temp = num(m[1], int)
+    gpu_power = num(m[2], float, 0)
+    fan_speed = num(m[3], int)
+    vram_used = num(m[4], int)
+    vram_total = num(m[5], int)
+except Exception:
     pass
 
 vram_pct = (vram_used / vram_total * 100) if vram_total > 0 else 0
@@ -183,15 +256,16 @@ try:
             "--format=csv,noheader,nounits",
         ],
         text=True,
+        timeout=3,
     ).strip()
     if proc_out:
         for line in proc_out.split("\n"):
-            name, mem = line.split(",")
+            name, mem = line.rsplit(",", 1)
             gpu_procs.append(
                 {"name": os.path.basename(name.strip()), "mem": int(mem.strip())}
             )
     gpu_procs.sort(key=lambda x: x["mem"], reverse=True)
-except:
+except Exception:
     pass
 
 # ---------------------------------------------------

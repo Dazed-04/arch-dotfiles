@@ -40,7 +40,7 @@ def load_theme_colors():
         data = tomllib.loads(theme_path.read_text())
         colors = data.get("colors", {}).get("normal", {})
         return {**defaults, **colors}
-    except:
+    except Exception:
         return defaults
 
 

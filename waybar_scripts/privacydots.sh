@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# dependencies: pipewire (pw-dump), v4l2loopback-dkms, jq, dbus-send (dbus)
-set -euo pipefail
+# dependencies: pipewire (pw-dump), jq, psmisc (fuser), procps-ng (pgrep, ps)
+# optional: systemd (busctl) for GeoClue app names
+set -uo pipefail
 
 JQ_BIN="${JQ:-jq}"
 PW_DUMP_CMD="${PW_DUMP:-pw-dump}"
@@ -15,121 +16,90 @@ cam_app=""
 loc_app=""
 scr_app=""
 
-# mic & camera
+# mic & screen sharing: one pw-dump and one jq pass.
+# Only nodes in the "running" state count, so leftover idle streams are ignored.
 if command -v "$PW_DUMP_CMD" >/dev/null 2>&1 && command -v "$JQ_BIN" >/dev/null 2>&1; then
   dump="$($PW_DUMP_CMD 2>/dev/null || true)"
-
-  mic="$(
-    printf '%s' "$dump" |
-      $JQ_BIN -r '
-      [ .[]
-        | select(.type=="PipeWire:Interface:Node")
-        | select((.info.props."media.class"=="Audio/Source" or .info.props."media.class"=="Audio/Source/Virtual"))
-        | select((.info.state=="running") or (.state=="running"))
-      ] | (if length>0 then 1 else 0 end)
-    ' 2>/dev/null || echo 0
-  )"
-
-  if [[ "$mic" -eq 1 ]]; then
-    mic_app="$(
-      printf '%s' "$dump" |
-        $JQ_BIN -r '
-        [ .[]
-          | select(.type=="PipeWire:Interface:Node")
-          | select((.info.props."media.class"=="Stream/Input/Audio"))
-          | select((.info.state=="running") or (.state=="running"))
-          | .info.props["node.name"]
-        ] | unique | join(", ")
-      ' 2>/dev/null || echo ""
-    )"
-  fi
-
-  if command -v fuser >/dev/null 2>&1; then
-    cam=0
-    for dev in /dev/video*; do
-      if [ -e "$dev" ] && fuser "$dev" >/dev/null 2>&1; then
-        cam=1
-        break
-      fi
-    done
-  else
-    cam=0
-  fi
-
-  if command -v fuser >/dev/null 2>&1; then
-    for dev in /dev/video*; do
-      if [ -e "$dev" ] && fuser "$dev" >/dev/null 2>&1; then
-        pids=$(fuser "$dev" 2>/dev/null)
-        for pid in $pids; do
-          pname=$(ps -p "$pid" -o comm=)
-          if [[ -n "$pname" ]]; then
-            cam_app+="$pname, "
-          fi
-        done
-      fi
-    done
-    cam_app="${cam_app%, }"
-  fi
-
-fi
-
-# location
-if command -v gdbus >/dev/null 2>&1; then
-  loc="$(
-    if ps aux | grep "[g]eoclue" >/dev/null 2>&1; then
-      echo 1
-    else
-      echo 0
+  if [[ -n "$dump" ]]; then
+    mapfile -t pw < <(
+      printf '%s' "$dump" | $JQ_BIN -r '
+        def p: (.info.props // {});
+        def running: ((.info.state // .state // "") == "running");
+        [ .[] | select(.type == "PipeWire:Interface:Node") | select(running) ] as $nodes
+        | ( [ $nodes[]
+              | select(p["media.class"] == "Audio/Source" or p["media.class"] == "Audio/Source/Virtual")
+            ] | length > 0 ) as $mic
+        | ( [ $nodes[]
+              | select(p["media.class"] == "Stream/Input/Audio")
+              | (p["application.name"] // p["node.name"] // "?")
+            ] | unique | join(", ") ) as $mic_app
+        | ( [ $nodes[]
+              | select((p["media.name"] // "") | test("^(xdph-streaming|gsr-default|game capture)"))
+            ] | length > 0 ) as $scr
+        | ( [ $nodes[]
+              | select(p["media.class"] == "Stream/Input/Video"
+                       or ((p["media.name"] // "") | test("^(gsr-default_output|game capture)$")))
+              | (p["application.name"] // p["media.name"] // "?")
+            ] | unique | join(", ") ) as $scr_app
+        | (if $mic then 1 else 0 end),
+          $mic_app,
+          (if $scr then 1 else 0 end),
+          (if $scr then $scr_app else "" end)
+      ' 2>/dev/null
+    )
+    if ((${#pw[@]} >= 4)); then
+      mic="${pw[0]}"
+      mic_app="${pw[1]}"
+      scr="${pw[2]}"
+      scr_app="${pw[3]}"
     fi
-  )"
+  fi
 fi
+[[ "$mic" == 1 ]] || mic=0
+[[ "$scr" == 1 ]] || scr=0
 
-if command -v gdbus >/dev/null 2>&1; then
-  if pids=$(pgrep -x geoclue); then
-    loc=1
+# camera: processes holding any /dev/video* node open; names de-duplicated
+if command -v fuser >/dev/null 2>&1; then
+  cam_names=()
+  for dev in /dev/video*; do
+    [[ -e "$dev" ]] || continue
+    pids="$(fuser "$dev" 2>/dev/null || true)"
     for pid in $pids; do
-      pname=$(ps -p "$pid" -o comm=)
-      [[ -n "$pname" ]] && loc_app+="$pname, "
+      pid="${pid//[!0-9]/}"
+      [[ -n "$pid" ]] || continue
+      cam=1
+      pname="$(ps -p "$pid" -o comm= 2>/dev/null || true)"
+      [[ -n "$pname" ]] && cam_names+=("$pname")
     done
-    loc_app="${loc_app%, }"
-  else
+  done
+  if ((${#cam_names[@]} > 0)); then
+    cam_app="$(printf '%s\n' "${cam_names[@]}" | sort -u | paste -sd, - | sed 's/,/, /g')"
+  fi
+fi
+
+# location: GeoClue is D-Bus activated, so a running process normally means a
+# client is using it. Only ask it for details once it is known to be running
+# (asking would otherwise start the service).
+if pgrep -x geoclue >/dev/null 2>&1; then
+  loc=1
+  in_use="$(timeout 1 busctl --system get-property org.freedesktop.GeoClue2 /org/freedesktop/GeoClue2/Manager org.freedesktop.GeoClue2.Manager InUse 2>/dev/null || true)"
+  if [[ "$in_use" == "b false" ]]; then
     loc=0
+  else
+    geo_names=()
+    while IFS= read -r obj; do
+      [[ -n "$obj" ]] || continue
+      id="$(timeout 1 busctl --system get-property org.freedesktop.GeoClue2 "$obj" org.freedesktop.GeoClue2.Client DesktopId 2>/dev/null || true)"
+      id="${id#s \"}"
+      id="${id%\"}"
+      [[ -n "$id" && "$id" != "s" ]] && geo_names+=("$id")
+    done < <(timeout 1 busctl --system tree --list org.freedesktop.GeoClue2 2>/dev/null | grep -E '/Client/[0-9]+$' || true)
+    if ((${#geo_names[@]} > 0)); then
+      loc_app="$(printf '%s\n' "${geo_names[@]}" | sort -u | paste -sd, - | sed 's/,/, /g')"
+    else
+      loc_app="geoclue"
+    fi
   fi
-fi
-
-# screen sharing
-if command -v "$PW_DUMP_CMD" >/dev/null 2>&1 && command -v "$JQ_BIN" >/dev/null 2>&1; then
-  if [[ -z "${dump:-}" ]]; then
-    dump="$($PW_DUMP_CMD 2>/dev/null || true)"
-  fi
-
-  scr="$(
-    printf '%s' "$dump" |
-      $JQ_BIN -e '
-          [ .[]
-            | select(.info?.props?)
-            | select(
-                (.info.props["media.name"]? // "")
-                | test("^(xdph-streaming|gsr-default|game capture)")
-            )
-          ]
-          | (if length > 0 then true else false end)
-        ' >/dev/null && echo 1 || echo 0
-  )"
-fi
-
-if [[ "$scr" -eq 1 ]]; then
-  scr_app="$(
-    printf '%s' "$dump" |
-      $JQ_BIN -r '
-        [ .[]
-          | select(.type=="PipeWire:Interface:Node")
-          | select((.info.props."media.class"=="Stream/Input/Video") or (.info.props."media.name"=="gsr-default_output") or (.info.props."media.name"=="game capture"))
-          | select((.info.state=="running") or (.state=="running"))
-          | .info.props["media.name"]
-        ] | unique | join(", ")
-      ' 2>/dev/null || echo ""
-  )"
 fi
 
 # output
@@ -159,37 +129,28 @@ scr_dot="$(dot "$scr" "$purple" "󰹑 ")"
 
 text="${dots[*]}"
 
-if [[ -n "$mic_app" ]]; then
-  mic_status="Mic: $mic_app"
-else
-  mic_status="Mic: off"
-fi
+status() { # label, on (0/1), app names
+  if [[ "$2" -eq 1 ]]; then
+    printf '%s: %s' "$1" "${3:-on}"
+  else
+    printf '%s: off' "$1"
+  fi
+}
 
-if [[ -n "$cam_app" ]]; then
-  cam_status="Cam: $cam_app"
-else
-  cam_status="Cam: off"
-fi
-
-if [[ -n "$loc_app" ]]; then
-  loc_status="Location: $loc_app"
-else
-  loc_status="Location: off"
-fi
-
-if [[ -n "$scr_app" ]]; then
-  scr_status="Screen sharing: $scr_app"
-else
-  scr_status="Screen sharing: off"
-fi
+mic_status="$(status "Mic" "$mic" "$mic_app")"
+cam_status="$(status "Cam" "$cam" "$cam_app")"
+loc_status="$(status "Location" "$loc" "$loc_app")"
+scr_status="$(status "Screen sharing" "$scr" "$scr_app")"
 
 tooltip="$mic_status  |  $cam_status  |  $loc_status  |  $scr_status"
 
-classes="privacydot"
-[[ $mic -eq 1 ]] && classes="$classes mic-on" || classes="$classes mic-off"
-[[ $cam -eq 1 ]] && classes="$classes cam-on" || classes="$classes cam-off"
-[[ $loc -eq 1 ]] && classes="$classes loc-on" || classes="$classes loc-off"
-[[ $scr -eq 1 ]] && classes="$classes scr-on" || classes="$classes scr-off"
+classes=(privacydot)
+if [[ "$mic" -eq 1 ]]; then classes+=(mic-on); else classes+=(mic-off); fi
+if [[ "$cam" -eq 1 ]]; then classes+=(cam-on); else classes+=(cam-off); fi
+if [[ "$loc" -eq 1 ]]; then classes+=(loc-on); else classes+=(loc-off); fi
+if [[ "$scr" -eq 1 ]]; then classes+=(scr-on); else classes+=(scr-off); fi
 
-jq -c -n --arg text "$text" --arg tooltip "$tooltip" --arg class "$classes" \
-  '{text:$text, tooltip:$tooltip, class:$class}'
+# The tooltip is plain text but Waybar renders it as Pango markup, so escape
+# &, < and > in app names (@html). "class" is an array so each one is a real CSS class.
+jq -c -n --arg text "$text" --arg tooltip "$tooltip" \
+  '{text:$text, tooltip:($tooltip | @html), class:$ARGS.positional}' --args "${classes[@]}"

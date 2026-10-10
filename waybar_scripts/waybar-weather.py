@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
+import html
 import json
 import pathlib
-import pickle
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -13,7 +13,9 @@ import requests
 FALLBACK_LAT = "28.9611"
 FALLBACK_LON = "77.7271"
 DISPLAY_NAME = "Meerut"
-CACHE_TIMEOUT = 900
+CACHE_TIMEOUT = 840  # a bit under the 900 s poll interval, so every poll refreshes
+LOCATION_TTL = 6 * 3600  # re-run the IP lookup at most every 6 hours
+USE_IP_LOOKUP = True  # False = always use the FALLBACK_* coordinates, no lookup at all
 FONT = "Liberation Mono"
 SOLID_LINE = "─" * 20
 NBSP = "\u00a0"  # Non-breaking space prevents Pango from collapsing spaces
@@ -42,7 +44,7 @@ def load_theme_colors():
         data = tomllib.loads(theme_path.read_text())
         colors = data.get("colors", {}).get("normal", {})
         return {**defaults, **colors}
-    except:
+    except Exception:
         return defaults
 
 
@@ -54,22 +56,70 @@ def c(text, color_hex):
 
 
 # ---------------- DATA FETCHING
-def get_location():
+CACHE_DIR = pathlib.Path.home() / ".cache"
+CACHE_FILE = CACHE_DIR / "waybar_weather_cache.json"
+LOCATION_FILE = CACHE_DIR / "waybar_weather_location.json"
+
+
+def read_json(path):
     try:
-        # Fast IP-based location without system D-Bus dependencies
-        r = requests.get("http://ip-api.com/json/", timeout=3)
-        if r.status_code == 200:
-            data = r.json()
-            if data.get("status") == "success":
-                return str(data["lat"]), str(data["lon"]), data["city"]
+        data = json.loads(path.read_text())
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def write_json(path, data):
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data))
+        tmp.replace(path)
     except Exception:
         pass
 
-    return FALLBACK_LAT, FALLBACK_LON, DISPLAY_NAME
+
+def get_location():
+    """Fresh cache -> IP lookup -> stale cache -> fallback coordinates."""
+    fallback = (FALLBACK_LAT, FALLBACK_LON, DISPLAY_NAME)
+    if not USE_IP_LOOKUP:
+        return fallback
+
+    cached = read_json(LOCATION_FILE)
+    if cached and not {"lat", "lon", "city"} <= cached.keys():
+        cached = None
+    if cached and time.time() - cached.get("timestamp", 0) < LOCATION_TTL:
+        return cached["lat"], cached["lon"], cached["city"]
+
+    try:
+        # The free ip-api tier is plain HTTP only
+        r = requests.get(
+            "http://ip-api.com/json/?fields=status,lat,lon,city", timeout=3
+        )
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("status") == "success":
+                loc = (str(data["lat"]), str(data["lon"]), data["city"])
+                write_json(
+                    LOCATION_FILE,
+                    {
+                        "timestamp": time.time(),
+                        "lat": loc[0],
+                        "lon": loc[1],
+                        "city": loc[2],
+                    },
+                )
+                return loc
+    except Exception:
+        pass
+
+    if cached:  # lookup failed: an old location beats the hard-coded one
+        return cached["lat"], cached["lon"], cached["city"]
+    return fallback
 
 
 LAT, LON, ACTUAL_NAME = get_location()
-CACHE_FILE = pathlib.Path.home() / ".cache" / "waybar_weather_cache.pkl"
+ACTUAL_NAME = html.escape(str(ACTUAL_NAME))
 
 WEATHER_MAP = {
     0: ("󰖙 ", " Clear sky"),
@@ -103,39 +153,59 @@ WEATHER_MAP = {
 }
 
 
-def get_weather_data():
-    CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    if CACHE_FILE.exists():
-        try:
-            with open(CACHE_FILE, "rb") as f:
-                cached = pickle.load(f)
-                # Ensure the cache belongs to the current physical location
-                if time.time() - cached["timestamp"] < CACHE_TIMEOUT:
-                    if cached.get("lat") == LAT and cached.get("lon") == LON:
-                        return cached["data"]
-        except:
-            pass
+def fetch_weather():
     url = (
         f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}"
-        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,uv_index"
-        "&hourly=temperature_2m,weather_code,precipitation_probability,is_day"
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m"
+        "&hourly=temperature_2m,weather_code,precipitation_probability"
         "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=auto"
     )
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
+def get_weather_data():
+    """Returns (data, fetched_at, is_stale); (None, 0, False) if nothing is available."""
+    cached = read_json(CACHE_FILE)
+    # A cache only counts if it belongs to the current location
+    if not (
+        cached
+        and cached.get("lat") == LAT
+        and cached.get("lon") == LON
+        and "data" in cached
+    ):
+        cached = None
+
+    if cached and time.time() - cached.get("timestamp", 0) < CACHE_TIMEOUT:
+        return cached["data"], cached["timestamp"], False
+
     try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        with open(CACHE_FILE, "wb") as f:
-            pickle.dump(
-                {"timestamp": time.time(), "lat": LAT, "lon": LON, "data": data}, f
-            )
-        return data
-    except:
-        return None
+        data = fetch_weather()
+    except Exception:
+        if cached:  # offline: show the last good data, marked as stale
+            return cached["data"], cached.get("timestamp", 0), True
+        return None, 0, False
+
+    fetched_at = time.time()
+    write_json(
+        CACHE_FILE, {"timestamp": fetched_at, "lat": LAT, "lon": LON, "data": data}
+    )
+    return data, fetched_at, False
+
+
+def location_now(data):
+    """Current time at the forecast location (naive), from the API's UTC offset."""
+    try:
+        offset = int(data["utc_offset_seconds"])
+        now = datetime.now(timezone.utc) + timedelta(seconds=offset)
+        return now.replace(tzinfo=None)
+    except Exception:
+        return datetime.fromisoformat(data["current"]["time"])
 
 
 def main():
-    data = get_weather_data()
+    data, fetched_at, is_stale = get_weather_data()
     if not data:
         print(json.dumps({"text": "N/A", "tooltip": "Weather unavailable"}))
         sys.exit(0)
@@ -146,7 +216,7 @@ def main():
             curr["temperature_2m"],
             *WEATHER_MAP.get(curr["weather_code"], ("❓", "Unknown")),
         )
-        now_iso = datetime.now().isoformat()
+        now_dt = location_now(data)  # "now" in the forecast location's timezone
         f_span = f"font_family='{FONT}'"
 
         lines = [
@@ -162,7 +232,6 @@ def main():
         lines.append(f"<span {f_span}>󰖝{NBSP * 3}{curr['wind_speed_10m']}km/h</span>")
 
         # --- Dynamic Sun Schedule ---
-        now_dt = datetime.now()
         sunset_str = daily["sunset"][0]
         sunset_dt = datetime.fromisoformat(sunset_str)
 
@@ -200,7 +269,7 @@ def main():
         add_section("Today", "")
         clocks = ["󱑊", "󱐿", "󱑀", "󱑁", "󱑂", "󱑃", "󱑄", "󱑅", "󱑆", "󱑇", "󱑈", "󱑉"]
 
-        now_hour = datetime.now().strftime("%Y-%m-%dT%H:00")
+        now_hour = now_dt.strftime("%Y-%m-%dT%H:00")
         try:
             start_idx = hourly["time"].index(now_hour)
         except ValueError:
@@ -224,10 +293,10 @@ def main():
         tomorrow_labels = {
             7: f"󰖜{NBSP}Morning",
             12: f"󰖙{NBSP}Midday",
-            17: f"󰖚{NBSP}Arvo",
+            17: f"󰖚{NBSP}Afternoon",
             21: f"󰖔{NBSP}Evening",
         }
-        for i in range(24, 48):
+        for i in range(24, min(48, len(hourly["time"]))):
             dt = datetime.fromisoformat(hourly["time"][i])
             if dt.hour in tomorrow_labels:
                 prefix = tomorrow_labels[dt.hour].ljust(14, NBSP)
@@ -257,20 +326,27 @@ def main():
                 f"<span {f_span}>{prefix}{NBSP * 2}{rain}{NBSP * 2}{c('', COLORS['cyan'])}{NBSP}{min_t}°{NBSP * 2}{c('', COLORS['red'])}{NBSP}{max_t}°{NBSP * 2}{d_icon}</span>"
             )
 
+        stale_note = []
+        if is_stale:
+            cached_at = datetime.fromtimestamp(fetched_at).strftime("%H:%M")
+            stale_note = [
+                f"<span {f_span}>{c(NBSP * 3 + 'cached ' + cached_at + ' (offline)', COLORS['bright_black'])}</span>"
+            ]
+
         print(
             json.dumps(
                 {
                     "text": f"<span size='13000'>{icon}</span><span size='11000'>{temp}°C</span> ",
-                    "tooltip": "\n".join(lines),
+                    "tooltip": "\n".join(lines + stale_note),
                     "markup": "pango",
-                    "class": "weather",
+                    "class": ["weather", "stale"] if is_stale else ["weather"],
                 },
                 ensure_ascii=False,
             )
         )
 
     except Exception as e:
-        print(json.dumps({"text": "Error", "tooltip": str(e)}))
+        print(json.dumps({"text": "Error", "tooltip": html.escape(str(e))}))
 
 
 if __name__ == "__main__":
