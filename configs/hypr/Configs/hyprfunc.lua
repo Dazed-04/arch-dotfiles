@@ -129,8 +129,12 @@ hl.env("HYPRCURSOR_SIZE", "27")
 
 -- Hybrid graphics: Intel video decoding, NVIDIA for GLX
 hl.env("LIBVA_DRIVER_NAME", "iHD")
+hl.env("__EGL_VENDOR_LIBRARY_FILENAMES", "/usr/share/glvnd/egl_vendor.d/50_mesa.json")
 -- hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 -- hl.env("GBM_BACKEND", "nvidia-drm")
+
+-- Force Aquamarine to exclusively use the DRM KMS backend
+hl.env("AQ_FORCE_BACKEND", "drm")
 
 -- Native Wayland support for most Electron apps
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
@@ -142,7 +146,7 @@ hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 hl.env("__GL_GSYNC_ALLOWED", "0")
 
 -- Qt style override
-hl.env("QT_QPA_PLATFORMTHEME", "qt5ct")
+hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QT_STYLE_OVERRIDE", "kvantum")
 
 -- OBS Wayland support

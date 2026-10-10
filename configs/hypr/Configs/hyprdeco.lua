@@ -88,7 +88,6 @@ hl.curve("materialNoBounce", { type = "spring", mass = 1, stiffness = 200, dampe
 
 -- Base for anything not listed below
 hl.animation({ leaf = "global", enabled = true, speed = 4, bezier = "smooth" })
-
 hl.animation({ leaf = "border", enabled = true, speed = 2.5, bezier = "easeOutQuart" })
 hl.animation({ leaf = "windows", enabled = true, speed = 4.79, spring = "easy" })
 hl.animation({ leaf = "windowsIn", enabled = true, speed = 1, spring = "appleDefault", style = "popin 87%" })
@@ -106,6 +105,20 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 3, bezier = "easeOut
 hl.animation({ leaf = "workspacesIn", enabled = true, speed = 2.3, bezier = "easeOutCubic", style = "slidefade 80%" })
 hl.animation({ leaf = "workspacesOut", enabled = true, speed = 2.5, bezier = "easeInOutCubic", style = "slidefade 80%" })
 hl.animation({ leaf = "zoomFactor", enabled = true, speed = 3.5, bezier = "quick" })
+hl.animation({
+	leaf = "specialWorkspaceIn",
+	enabled = true,
+	speed = 6,
+	bezier = "easeOutQuart",
+	style = "slide top",
+})
+hl.animation({
+	leaf = "specialWorkspaceOut",
+	enabled = true,
+	speed = 6,
+	bezier = "easeOutQuart",
+	style = "slide bottom",
+})
 
 ---------------
 --- LAYOUTS ---

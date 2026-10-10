@@ -26,7 +26,7 @@ local function panel(name, match, size, pos, extra)
 		float = true,
 		pin = true,
 		decorate = true,
-		opacity = glass,
+		opacity = soft,
 		size = size,
 		move = pos,
 	}
@@ -214,12 +214,14 @@ hl.window_rule({
 	match = { class = "com-abdownloadmanager-desktop-AppKt" },
 	float = true,
 	center = true,
+	size = { 1200, 800 },
 })
 
 hl.window_rule({
 	name = "tile-abdownload-app",
 	match = { class = "com-abdownloadmanager-desktop-AppKt", title = "AB Download Manager" },
 	float = true,
+	center = true,
 	size = { 1200, 800 },
 })
 
@@ -331,19 +333,16 @@ hl.window_rule({
 -- Hyprland share picker
 float_center("float-hyprland-share-picker", { initial_class = "hyprland-share-picker" }, { 800, 500 })
 
--- Force the Hyprland authentication dialog to float and center (disabled)
--- hl.window_rule({
---   name = "float-hyprpolkitagent",
---   match = {
---     class = "hyprpolkitagent",
---     title = "hyprpolkitagent",
---   },
---   float = true,
---   center = true,
---   size = { "(monitor_w * 0.3)", "(monitor_h * 0.533)" },
---   pin = true,
---   stay_focused = true,
--- })
+-- Polkit authentication dialog: wider, shorter, slides in from the bottom like rofi
+hl.window_rule({
+	name = "style-hyprpolkitagent",
+	match = { class = "^hyprpolkitagent$" },
+	float = true,
+	center = true,
+	size = { 500, 340 },
+	animation = "slide bottom",
+	opacity = glass,
+})
 
 -------------------
 --- Layer rules ---
