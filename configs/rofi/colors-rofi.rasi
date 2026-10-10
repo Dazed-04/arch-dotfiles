@@ -1,15 +1,15 @@
 * {
     /* Use surface or surface-container for a neutral dark background */
-    background: #131318bf;
+    background: #191114bf;
     
     /* Use on-surface for the main text so it always contrasts with the background */
-    foreground: #e4e1e9;
+    foreground: #eedfe2;
     
     /* Use primary for the 'selected' bar so it stands out */
-    selected-normal-background: #c2c1ff;
+    selected-normal-background: #ffb0cc;
     
     /* Use on-primary for text inside the selected bar so it's readable */
-    selected-active-background: #2a2a60;
+    selected-active-background: #541d35;
     
     /* Use error for alerts */
     selected-urgent-background: #ffb4ab;
