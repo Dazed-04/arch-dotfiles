@@ -17,7 +17,7 @@ CACHE_TIMEOUT = 840  # a bit under the 900 s poll interval, so every poll refres
 LOCATION_TTL = 6 * 3600  # re-run the IP lookup at most every 6 hours
 USE_IP_LOOKUP = True  # False = always use the FALLBACK_* coordinates, no lookup at all
 FONT = "Liberation Mono"
-SOLID_LINE = "─" * 20
+SOLID_LINE = "─" * 22
 NBSP = "\u00a0"  # Non-breaking space prevents Pango from collapsing spaces
 
 # ---------------- THEME & COLORS
@@ -285,7 +285,7 @@ def main():
             temp_val = f"{hourly['temperature_2m'][i]:.1f}".rjust(5, NBSP)
 
             lines.append(
-                f"<span {f_span}>{time_padded}{NBSP * 5}{rain}{NBSP * 2}{NBSP}{temp_val}°C{NBSP * 2}{h_icon}</span>"
+                f"<span {f_span}>{time_padded}{NBSP * 6}{rain}{NBSP * 2}{temp_val}°C{NBSP * 2}{h_icon}</span>"
             )
 
         # --- Tomorrow ---
@@ -305,7 +305,7 @@ def main():
                 temp_val = f"{hourly['temperature_2m'][i]:.1f}".rjust(5, NBSP)
 
                 lines.append(
-                    f"<span {f_span}>{prefix}{NBSP * 5}{rain}{NBSP * 2}{NBSP}{temp_val}°C{NBSP * 2}{t_icon}</span>"
+                    f"<span {f_span}>{prefix}{NBSP * 6}{rain}{NBSP * 2}{temp_val}°C{NBSP * 2}{t_icon}</span>"
                 )
 
         # --- Extended ---
@@ -330,7 +330,8 @@ def main():
         if is_stale:
             cached_at = datetime.fromtimestamp(fetched_at).strftime("%H:%M")
             stale_note = [
-                f"<span {f_span}>{c(NBSP * 3 + 'cached ' + cached_at + ' (offline)', COLORS['bright_black'])}</span>"
+                "<span>       ───────────────────────────</span>",
+                f"<span {f_span}>{c(NBSP * 7 + 'cached ' + cached_at + ' (offline)', COLORS['bright_black'])}</span>",
             ]
 
         print(

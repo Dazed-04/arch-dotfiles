@@ -193,9 +193,11 @@ function y() {
 ### Aliases ###
 ###############
 
+alias aa="arch-audit"
 alias ff="fastfetch"
-alias gm="$HOME/.local/bin/myScripts/media/yt-media"
 alias lsda="lsd -A"
+alias pk="pacseek"
+alias yt="yt-media"
 alias superparu="$HOME/.local/bin/myScripts/utilities/superPackageManagers.sh --paru"
 alias superpacman="$HOME/.local/bin/myScripts/utilities/superPackageManagers.sh --pacman"
 

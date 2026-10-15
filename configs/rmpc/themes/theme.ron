@@ -70,7 +70,7 @@
         (kind: Text("]"), style:(modifiers: "Bold"))
         ],
         center: [
-        (kind: Text("󰣐   "), style:(fg: "#BE869D", modifiers: "Bold")),
+        (kind: Text("󰣐    "), style:(fg: "#BE869D", modifiers: "Bold")),
         (kind: Property(Song(Title)), style: (modifiers: "Bold"),
             default: (kind: Text("No Song"), style: (modifiers: "Bold"))
           ),
