@@ -161,6 +161,7 @@ hl.window_rule({
 float_center("float-gimp-submenus", { initial_class = "script-fu" }, { 600, 500 }, { stay_focused = true })
 float_center("float-gimp-pdf", { initial_class = "file-pdf-load", title = "Load PDF Image" }, nil, { opacity = soft })
 float_center("float-keepassxc", { initial_class = "org.keepassxc.KeePassXC" }, { 1200, 800 }, { opacity = soft })
+
 float_center(
 	"float-xdg-desktop-portal-gtk",
 	{ initial_class = "xdg-desktop-portal-gtk" },
