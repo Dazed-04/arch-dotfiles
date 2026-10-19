@@ -195,6 +195,7 @@ function y() {
 
 alias aa="arch-audit"
 alias ff="fastfetch"
+alias mpvd='VK_DRIVER_FILES=/usr/share/vulkan/icd.d/nvidia_icd.json __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json __NV_PRIME_RENDER_OFFLOAD=1 __VK_LAYER_NV_optimus=NVIDIA_only mpv --profile=dgpu'
 alias lsda="lsd -A"
 alias pk="pacseek"
 alias yt="yt-media"
