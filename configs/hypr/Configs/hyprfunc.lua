@@ -129,6 +129,7 @@ hl.env("HYPRCURSOR_SIZE", "27")
 
 -- Hybrid graphics: Intel video decoding, NVIDIA for GLX
 hl.env("LIBVA_DRIVER_NAME", "iHD")
+hl.env("VK_DRIVER_FILES", "/usr/share/vulkan/icd.d/intel_icd.json")
 hl.env("__EGL_VENDOR_LIBRARY_FILENAMES", "/usr/share/glvnd/egl_vendor.d/50_mesa.json")
 -- hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 -- hl.env("GBM_BACKEND", "nvidia-drm")

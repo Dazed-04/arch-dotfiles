@@ -104,6 +104,10 @@ video_opener = [
   { run = 'mpv --autofit-larger=70%x70% --force-window=yes %s', orphan = true, desc = "Open Video" },
 ]
 
+video_opener_dgpu = [
+  { run = 'env VK_DRIVER_FILES=/usr/share/vulkan/icd.d/nvidia_icd.json __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json __NV_PRIME_RENDER_OFFLOAD=1 __VK_LAYER_NV_optimus=NVIDIA_only mpv --profile=dgpu --autofit-larger=70%x70% --force-window=yes %s', orphan = true, desc = "Open Video (dGPU)" },
+]
+
 ###################
 # Play using rmpc #
 ###################
@@ -167,6 +171,7 @@ prepend_rules = [
   ] },
   { mime = "video/*", use = [
     "video_opener",
+    "video_opener_dgpu",
     "localsend_opt",
   ] },
   { mime = "audio/*", use = [
