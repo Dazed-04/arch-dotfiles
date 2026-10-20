@@ -116,8 +116,8 @@ hl.bind(mainMod .. " + K", hl.dsp.window.close())
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd(vars.menu))
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(vars.blur))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(vars.fileManager))
-hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
-hl.bind(mainMod .. " + SHIFT + F", toggle_float_centered)
+hl.bind(mainMod .. " + F", toggle_float_centered)
+hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 hl.bind(mainMod .. " + J", layout_bind({ dwindle = hl.dsp.layout("togglesplit") }))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(vars.refreshRate))
@@ -265,7 +265,7 @@ end, { repeating = true })
 hl.bind(mainMod .. " + P", hl.dsp.window.pin())
 
 -- Game mode / battery saving mode
-hl.bind(mainMod .. " + ALT + G", toggle_game_mode)
+hl.bind(mainMod .. " + G", toggle_game_mode)
 
 -----------------
 --- Media keys ---

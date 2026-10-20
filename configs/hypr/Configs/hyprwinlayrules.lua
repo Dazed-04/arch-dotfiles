@@ -71,16 +71,17 @@ float_center(
 	{ opacity = glass }
 )
 float_center("float-cmake", { initial_class = "cmake-gui" }, { 1000, 700 }, { opacity = glass })
-float_center("float-localsend", { initial_class = "localsend" }, { 1000, 700 }, { opacity = glass })
+float_center("float-localsend", { initial_class = "org.localsend.localsend_app" }, { 1000, 700 }, { opacity = glass })
 
 -- Music (rmpc lives on the music special workspace)
 hl.window_rule({
 	name = "rmpc-music-workspace",
 	match = { initial_class = "rmpc" },
 	workspace = "special:music",
+	float = false,
 	center = true,
 	decorate = true,
-	opacity = "0.65 0.65",
+	opacity = glass,
 })
 
 ----------------------
@@ -397,5 +398,5 @@ hl.layer_rule({
 --- Workspace rules ---
 -----------------------
 
-hl.workspace_rule({ workspace = "special:music", layout = "scrolling" })
 hl.workspace_rule({ workspace = "2", layout = "scrolling" })
+hl.workspace_rule({ workspace = "special:music", layout = "scrolling" })
