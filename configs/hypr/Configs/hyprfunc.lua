@@ -90,6 +90,9 @@ hl.config({
 		workspace_back_and_forth = true,
 		hide_special_on_workspace_change = true,
 	},
+	debug = {
+		disable_time = false,
+	},
 })
 
 -------------------

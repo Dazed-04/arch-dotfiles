@@ -1,0 +1,12 @@
+[Unit]
+Description=Return dGPU to automatic runtime PM
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/sleep 3
+ExecStart=/usr/bin/sudo -n /usr/local/bin/dgpu-power auto
+
+[Install]
+WantedBy=graphical-session.target
