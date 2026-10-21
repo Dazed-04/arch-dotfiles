@@ -1,0 +1,439 @@
+diff --git a/src/uosc/elements/Timeline.lua b/src/uosc/elements/Timeline.lua
+index 859eab7..f828036 100644
+--- a/src/uosc/elements/Timeline.lua
++++ b/src/uosc/elements/Timeline.lua
+@@ -19,6 +19,9 @@ function Timeline:init()
+ 	self.is_hovered = false
+ 	self.has_thumbnail = false
+ 	self.heatmap = nil
++	self.heatmap_toggle = false -- `slim` style: pinned on with `toggle-heatmap`
++	self.heatmap_alpha = 0
++	self.heatmap_want = false
+ 
+ 	self:decide_progress_size()
+ 	self:update_dimensions()
+@@ -86,6 +89,16 @@ function Timeline:toggle_progress()
+ 	request_render()
+ end
+ 
++-- `slim` style: pin the heatmap graph above the seekbar (it also shows while dragging upwards).
++function Timeline:toggle_heatmap()
++	if not self.heatmap then
++		mp.commandv('show-text', 'No heatmap for this file', 1500)
++		return
++	end
++	self.heatmap_toggle = not self.heatmap_toggle
++	request_render()
++end
++
+ function Timeline:flash_progress()
+ 	if self.enabled and options.flash_duration > 0 then
+ 		if not self._flash_progress_timer then
+@@ -104,7 +117,16 @@ function Timeline:flash_progress()
+ 	end
+ end
+ 
++function Timeline:get_slim_track()
++	local margin = round(options.slim_margin * state.scale)
++	return self.ax + margin, self.bx - margin
++end
++
+ function Timeline:get_time_at_x(x)
++	if options.timeline_style == 'slim' then
++		local x0, x1 = self:get_slim_track()
++		return state.duration * clamp(0, (x - x0) / math.max(x1 - x0, 1), 1)
++	end
+ 	local line_width = (options.timeline_style == 'line' and self.line_width - 1 or 0)
+ 	local time_width = self.width - line_width - 1
+ 	local fax = (time_width) * state.time / state.duration
+@@ -156,10 +178,12 @@ function Timeline:handle_cursor_up()
+ 	if self.pressed then
+ 		mp.set_property_native('pause', self.pressed.pause)
+ 		self.pressed = false
++		request_render()
+ 	end
+ end
+ function Timeline:on_global_mouse_leave()
+ 	self.pressed = false
++	request_render()
+ end
+ 
+ function Timeline:on_global_mouse_move()
+@@ -181,6 +205,245 @@ function Timeline:cursor_command(command)
+ 	end
+ end
+ 
++-- Draws the hover thumbnail (box + thumbfast request). Moves `tooltip_anchor.ay` above the box.
++-- Returns true if a thumbnail was rendered.
++function Timeline:draw_thumbnail(ass, cursor_x, hovered_seconds, tooltip_anchor, tooltip_gap)
++	if thumbnail.disabled
++		or (self.pressed and self.pressed.distance >= 5)
++		or thumbnail.width == 0
++		or thumbnail.height == 0
++	then
++		return false
++	end
++	local border = options.thumbnail_padding > 0 and round(options.thumbnail_padding * state.scale)
++		or math.ceil(math.max(2, state.radius / 2) * state.scale)
++	local box_radius = options.thumbnail_radius >= 0 and round(options.thumbnail_radius * state.scale)
++		or state.radius
++	local thumb_x_margin, thumb_y_margin = border + tooltip_gap + self.ax, border + tooltip_gap
++	local thumb_width, thumb_height = thumbnail.width, thumbnail.height
++	local thumb_x = round(clamp(
++		thumb_x_margin,
++		cursor_x - thumb_width / 2,
++		display.width - thumb_width - thumb_x_margin
++	))
++	local thumb_y = round(tooltip_anchor.ay - thumb_y_margin - thumb_height)
++	local ax, ay = (thumb_x - border), (thumb_y - border)
++	local bx, by = (thumb_x + thumb_width + border), (thumb_y + thumb_height + border)
++	ass:rect(ax, ay, bx, by, {
++		color = config.thumbnail.color,
++		border = options.thumbnail_outline_size,
++		opacity = {
++			main = config.opacity.thumbnail,
++			border = options.thumbnail_outline_opacity * config.opacity.thumbnail,
++		},
++		border_color = config.thumbnail.outline_color,
++		radius = box_radius,
++	})
++	local thumb_seconds = (state.rebase_start_time == false and state.start_time) and
++		(hovered_seconds - state.start_time) or hovered_seconds
++	mp.commandv('script-message-to', 'thumbfast', 'thumb', thumb_seconds, thumb_x, thumb_y)
++	self.has_thumbnail = true
++	tooltip_anchor.ay = ay
++	return true
++end
++
++-- Draws the title of the hovered chapter above `tooltip_anchor`.
++function Timeline:draw_chapter_title(ass, tooltip_anchor, hovered_seconds, tooltip_gap)
++	if config.opacity.chapters > 0 and #state.chapters > 0 then
++		local _, chapter = itable_find(state.chapters, function(c) return hovered_seconds >= c.time end,
++			#state.chapters, 1)
++		if chapter and not chapter.is_end_only then
++			ass:tooltip(tooltip_anchor, chapter.title_wrapped, {
++				size = self.font_size,
++				offset = tooltip_gap,
++				responsive = false,
++				bold = true,
++				width_overwrite = chapter.title_wrapped_width * self.font_size,
++				lines = chapter.title_lines,
++				margin = tooltip_gap,
++			})
++		end
++	end
++end
++
++-- ModernZ-style slim seekbar. Used when `timeline_style=slim`.
++-- Collapsed it falls back to uosc's usual minimal progress line; expanded it shows a thin rounded
++-- track (split by chapters), a round knob, times underneath and a soft gradient backdrop.
++---@param size number current animated height of the timeline
++---@param visibility number 0-1
++function Timeline:render_slim(size, visibility)
++	local ass = assdraw.ass_new()
++	local scale = state.scale
++	local progress_size = math.max(self.min_progress_size, self.progress_size)
++	local f = clamp(0, (size - progress_size) / math.max(self.size - progress_size, 1), 1) -- expansion
++	local by = self.by
++	local x0, x1 = self:get_slim_track()
++	local tw = math.max(x1 - x0, 1)
++	local progress = clamp(0, state.time / state.duration, 1)
++	local xp = x0 + tw * progress
++	local function t2x(t) return x0 + tw * clamp(0, t / state.duration, 1) end
++
++	local hovering = self.proximity_raw <= 0 or self.pressed
++	local th = math.max(2, round((hovering and options.slim_height_hover or options.slim_height) * scale))
++	local r = th / 2
++	local cy = by - round(self.size * 0.60)
++
++	-- Cached ranges are the inverse of the uncached ones uosc already tracks for streams
++	local cached = nil
++	if options.slim_cache and state.uncached_ranges then
++		local t = 0
++		cached = {}
++		for _, range in ipairs(state.uncached_ranges) do
++			if range[1] > t then cached[#cached + 1] = {t, range[1]} end
++			t = math.max(t, range[2])
++		end
++		if t < state.duration then cached[#cached + 1] = {t, state.duration} end
++	end
++
++	-- Soft gradient behind timeline and controls
++	if options.slim_backdrop > 0 and visibility > 0 then
++		local controls_top = Elements:v('controls', 'ay')
++		local top = self.ay
++		if controls_top and controls_top > 0 and controls_top < top then top = controls_top end
++		top = top - round(28 * scale)
++		local steps, h = 14, by - top
++		for i = 0, steps - 1 do
++			local t = (i + 0.5) / steps
++			ass:rect(0, top + h * i / steps, display.width, top + h * (i + 1) / steps + 1, {
++				color = bg, opacity = options.slim_backdrop * visibility * t * t,
++			})
++		end
++	end
++
++	-- Collapsed: uosc's regular minimal progress line, fading out as the slim bar fades in
++	if progress_size > 0 and f < 1 then
++		local a = 1 - f
++		ass:rect(self.ax, by - progress_size, self.bx, by, {color = bg, opacity = config.opacity.timeline * a})
++		ass:rect(self.ax, by - progress_size, self.ax + (self.bx - self.ax) * progress, by,
++			{color = fg, opacity = config.opacity.position * a})
++	end
++
++	if f > 0 then
++		-- Track, one pill per chapter
++		local bounds = {0}
++		if options.slim_chapter_gaps then
++			for _, chapter in ipairs(state.chapters) do
++				if chapter.time > 0.5 and chapter.time < state.duration - 0.5 and chapter.time > bounds[#bounds] then
++					bounds[#bounds + 1] = chapter.time
++				end
++			end
++		end
++		bounds[#bounds + 1] = state.duration
++		local gap = math.max(2, round(2.5 * scale))
++		for i = 1, #bounds - 1 do
++			local sx0 = t2x(bounds[i]) + (i > 1 and gap / 2 or 0)
++			local sx1 = t2x(bounds[i + 1]) - (i < #bounds - 1 and gap / 2 or 0)
++			if sx1 - sx0 >= 1 then
++				ass:rect(sx0, cy - r, sx1, cy + r, {color = bgt, opacity = 0.28 * f, radius = math.min(r, (sx1 - sx0) / 2)})
++				if cached then
++					for _, range in ipairs(cached) do
++						local cx0 = math.max(sx0, t2x(math.max(range[1], bounds[i])))
++						local cx1 = math.min(sx1, t2x(math.min(range[2], bounds[i + 1])))
++						if cx1 - cx0 >= 1 then
++							ass:rect(cx0, cy - r, cx1, cy + r, {
++								color = bgt, opacity = 0.5 * f, radius = math.min(r, (cx1 - cx0) / 2),
++							})
++						end
++					end
++				end
++				local fx1 = math.min(sx1, xp)
++				if fx1 - sx0 >= 1 then
++					ass:rect(sx0, cy - r, fx1, cy + r, {
++						color = fg, opacity = config.opacity.position * f, radius = math.min(r, (fx1 - sx0) / 2),
++					})
++				end
++			end
++		end
++
++		-- Chapter ranges (openings, endings, sponsor segments...)
++		for _, range in ipairs(state.chapter_ranges) do
++			local rax, rbx = t2x(range.start), t2x(math.min(range['end'], state.duration))
++			if rbx - rax >= 1 then
++				ass:rect(rax, cy - r, rbx, cy + r, {
++					color = range.color, opacity = range.opacity * f, radius = math.min(r, (rbx - rax) / 2),
++				})
++			end
++		end
++
++		-- A-B loop markers
++		local function draw_ab(time)
++			local x, half = t2x(time), math.max(1, round(1.5 * scale))
++			ass:rect(x - half, cy - r - 5 * scale, x + half, cy + r + 5 * scale,
++				{color = fg, opacity = f, radius = half})
++		end
++		if state.ab_loop_a and state.ab_loop_a >= 0 then draw_ab(state.ab_loop_a) end
++		if state.ab_loop_b and state.ab_loop_b > 0 then draw_ab(state.ab_loop_b) end
++
++		-- Knob
++		local kr = round(options.slim_knob * scale * (hovering and 1.2 or 1))
++		if kr > 0 then
++			ass:circle(xp, cy, kr, {
++				color = fg, border = math.max(1, round(2 * scale)), border_color = bg,
++				opacity = {main = f, border = 0.85 * f},
++			})
++		end
++
++		-- Times under the track
++		local text_opts = {
++			size = math.floor(self.font_size * 0.78), color = bgt, opacity = f,
++			border = options.text_border * scale, border_color = bg,
++		}
++		local ty = by - round(self.size * 0.22)
++		if state.time_human then ass:txt(x0, ty, 4, state.time_human, text_opts) end
++		if state.destination_time_human then ass:txt(x1, ty, 6, state.destination_time_human, text_opts) end
++	end
++
++	-- Heatmap (YouTube): pinned with `toggle-heatmap`, or revealed by dragging up while seeking
++	if self.heatmap then
++		local want = self.heatmap_toggle
++			or (self.pressed and cursor.y < cy - r - options.slim_drag_up * scale) and true or false
++		if want ~= self.heatmap_want then
++			self.heatmap_want = want
++			self:tween_property('heatmap_alpha', self.heatmap_alpha, want and 1 or 0)
++		end
++		if self.heatmap_alpha > 0.01 and config.opacity.heatmap > 0 then
++			local gh = round(options.slim_heatmap_height * scale)
++			local gb = cy - r - round(6 * scale)
++			ass:smooth_curve(x0, gb - gh, x1, gb, self.heatmap, {
++				color = config.color.heatmap, opacity = config.opacity.heatmap * self.heatmap_alpha * f,
++				clip = string.format('\\clip(%d,%d,%d,%d)', x0, gb - gh, x1, gb),
++			})
++		end
++	end
++
++	-- Hover: tick on the track, timestamp, thumbnail, chapter title
++	local rendered_thumbnail = false
++	if hovering and not Elements:v('speed', 'dragging') then
++		local cursor_x = clamp(x0, cursor.x, x1)
++		local hovered_seconds = self:get_time_at_x(cursor.x)
++		local half = math.max(1, round(1 * scale))
++		ass:rect(cursor_x - half, cy - r - 3 * scale, cursor_x + half, cy + r + 3 * scale,
++			{color = fg, opacity = 0.7 * f, radius = half})
++
++		local tooltip_gap = round(2 * scale)
++		local tooltip_anchor = {ax = cursor_x - 0.5, ay = self.ay - self.top_border, bx = cursor_x + 0.5, by = by}
++		local opts = {
++			size = self.font_size, offset = tooltip_gap, margin = tooltip_gap, timestamp = options.time_precision > 0,
++		}
++		local hovered_time_human = format_time(hovered_seconds, state.duration)
++		opts.width_overwrite = timestamp_width(hovered_time_human, opts)
++		tooltip_anchor = ass:tooltip(tooltip_anchor, hovered_time_human, opts)
++
++		if self:draw_thumbnail(ass, cursor_x, hovered_seconds, tooltip_anchor, tooltip_gap) then
++			rendered_thumbnail = true
++		end
++		self:draw_chapter_title(ass, tooltip_anchor, hovered_seconds, tooltip_gap)
++	end
++	if not rendered_thumbnail then self:clear_thumbnail() end
++
++	return ass
++end
++
+ function Timeline:render()
+ 	if self.size == 0 then
+ 		self:clear_thumbnail()
+@@ -219,6 +482,8 @@ function Timeline:render()
+ 		end
+ 	end
+ 
++	if options.timeline_style == 'slim' then return self:render_slim(size, visibility) end
++
+ 	local ass = assdraw.ass_new()
+ 	local progress_size = math.max(self.min_progress_size, self.progress_size)
+ 
+@@ -477,52 +742,12 @@ function Timeline:render()
+ 		tooltip_anchor = ass:tooltip(tooltip_anchor, hovered_time_human, opts)
+ 
+ 		-- Thumbnail
+-		if not thumbnail.disabled
+-			and (not self.pressed or self.pressed.distance < 5)
+-			and thumbnail.width ~= 0
+-			and thumbnail.height ~= 0
+-		then
+-			local border = math.ceil(math.max(2, state.radius / 2) * state.scale)
+-			local thumb_x_margin, thumb_y_margin = border + tooltip_gap + bax, border + tooltip_gap
+-			local thumb_width, thumb_height = thumbnail.width, thumbnail.height
+-			local thumb_x = round(clamp(
+-				thumb_x_margin,
+-				cursor_x - thumb_width / 2,
+-				display.width - thumb_width - thumb_x_margin
+-			))
+-			local thumb_y = round(tooltip_anchor.ay - thumb_y_margin - thumb_height)
+-			local ax, ay = (thumb_x - border), (thumb_y - border)
+-			local bx, by = (thumb_x + thumb_width + border), (thumb_y + thumb_height + border)
+-			ass:rect(ax, ay, bx, by, {
+-				color = bg,
+-				border = 1,
+-				opacity = {main = config.opacity.thumbnail, border = 0.08 * config.opacity.thumbnail},
+-				border_color = fg,
+-				radius = state.radius,
+-			})
+-			local thumb_seconds = (state.rebase_start_time == false and state.start_time) and
+-				(hovered_seconds - state.start_time) or hovered_seconds
+-			mp.commandv('script-message-to', 'thumbfast', 'thumb', thumb_seconds, thumb_x, thumb_y)
+-			self.has_thumbnail, rendered_thumbnail = true, true
+-			tooltip_anchor.ay = ay
++		if self:draw_thumbnail(ass, cursor_x, hovered_seconds, tooltip_anchor, tooltip_gap) then
++			rendered_thumbnail = true
+ 		end
+ 
+ 		-- Chapter title
+-		if config.opacity.chapters > 0 and #state.chapters > 0 then
+-			local _, chapter = itable_find(state.chapters, function(c) return hovered_seconds >= c.time end,
+-				#state.chapters, 1)
+-			if chapter and not chapter.is_end_only then
+-				ass:tooltip(tooltip_anchor, chapter.title_wrapped, {
+-					size = self.font_size,
+-					offset = tooltip_gap,
+-					responsive = false,
+-					bold = true,
+-					width_overwrite = chapter.title_wrapped_width * self.font_size,
+-					lines = chapter.title_lines,
+-					margin = tooltip_gap,
+-				})
+-			end
+-		end
++		self:draw_chapter_title(ass, tooltip_anchor, hovered_seconds, tooltip_gap)
+ 	end
+ 
+ 	-- Clear thumbnail
+diff --git a/src/uosc/lib/utils.lua b/src/uosc/lib/utils.lua
+index f44cd79..66a2ae5 100644
+--- a/src/uosc/lib/utils.lua
++++ b/src/uosc/lib/utils.lua
+@@ -988,7 +988,7 @@ function load_youtube_heatmap()
+ 			max_val = math.max(max_val, seg.value)
+ 		end
+ 		-- Normalize and clamp to avoid gaps in heatmap
+-		local is_above = options.timeline_heatmap == 'above'
++		local is_above = options.timeline_heatmap == 'above' or options.timeline_style == 'slim'
+ 		local min_height, graph_height = 4, is_above and 40 or options.timeline_size
+ 		local max_norm_y = 1 - (min_height / graph_height)
+ 		local norm = {0, 1}
+diff --git a/src/uosc/main.lua b/src/uosc/main.lua
+index 57bc7db..b5bf2bd 100644
+--- a/src/uosc/main.lua
++++ b/src/uosc/main.lua
+@@ -71,6 +71,27 @@ defaults = {
+ 	font_scale = 1,
+ 	text_border = 1.2,
+ 	border_radius = 4,
++	-- `timeline_style=slim`: ModernZ-style seekbar (thin rounded track, round knob, chapter gaps,
++	-- times underneath, soft gradient backdrop). All sizes in px, scaled with the UI.
++	slim_height = 4,         -- track thickness
++	slim_height_hover = 7,   -- track thickness while the timeline is hovered
++	slim_knob = 7,           -- knob radius, 0 to hide
++	slim_margin = 18,        -- empty space left and right of the track
++	slim_chapter_gaps = true, -- split the track into chapters
++	slim_backdrop = 0.65,    -- opacity of the gradient behind timeline and controls, 0 to disable
++	slim_cache = true,       -- show cached ranges of streams on the track
++	slim_heatmap_height = 32, -- height of the YouTube heatmap graph shown above the track
++	slim_drag_up = 28,       -- drag this far above the track while seeking to reveal the heatmap
++	-- Timeline thumbnail box. Defaults reproduce stock uosc.
++	-- padding: px between thumbnail and box edge, 0 = automatic (stock)
++	-- radius: box corner radius in px, -1 = use `border_radius`
++	-- color/outline_color: RRGGBB, empty = palette `background` / `foreground`
++	thumbnail_padding = 0,
++	thumbnail_radius = -1,
++	thumbnail_color = '',
++	thumbnail_outline_size = 1,
++	thumbnail_outline_color = '',
++	thumbnail_outline_opacity = 0.08,
+ 	color = '',
+ 	opacity = '',
+ 	animation_duration = 100,
+@@ -289,6 +310,13 @@ function update_config()
+ 	fg, bg = config.color.foreground, config.color.background
+ 	fgt, bgt = config.color.foreground_text, config.color.background_text
+ 
++	-- Thumbnail box colors: explicit option wins, otherwise follow the palette
++	-- so color themes (e.g. hikari's) restyle the box automatically.
++	config.thumbnail = {
++		color = options.thumbnail_color ~= '' and serialize_rgba(options.thumbnail_color).color or bg,
++		outline_color = options.thumbnail_outline_color ~= '' and serialize_rgba(options.thumbnail_outline_color).color or fg,
++	}
++
+ 	-- Timeline step
+ 	do
+ 		local is_exact = options.timeline_step:sub(-1) == '!'
+@@ -819,6 +847,7 @@ bind_command('flash-speed', function() Elements:flash({'speed'}) end)
+ bind_command('flash-pause-indicator', function() Elements:flash({'pause_indicator'}) end)
+ bind_command('flash-progress', function() Elements:flash({'progress'}) end)
+ bind_command('toggle-progress', function() Elements:maybe('timeline', 'toggle_progress') end)
++bind_command('toggle-heatmap', function() Elements:maybe('timeline', 'toggle_heatmap') end)
+ bind_command('toggle-title', function() Elements:maybe('top_bar', 'toggle_title') end)
+ bind_command('decide-pause-indicator', function() Elements:maybe('pause_indicator', 'decide') end)
+ bind_command('menu', function() toggle_menu_with_items() end)

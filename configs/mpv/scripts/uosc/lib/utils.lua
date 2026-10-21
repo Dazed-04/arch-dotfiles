@@ -54,15 +54,14 @@ do
 
 	-- alphanum sorting for humans in Lua
 	-- http://notebook.kulchenko.com/algorithms/alphanumeric-natural-sorting-for-humans-in-lua
-	local function padnum(n, d)
-		return #d > 0 and ('%03d%s%.12f'):format(#n, n, tonumber(d) / (10 ^ #d))
-			or ('%03d%s'):format(#n, n)
+	local function padnum(n)
+		return ("%03d%s"):format(#n, n)
 	end
 
 	local function sort_lua(strings)
 		local tuples = {}
 		for i, f in ipairs(strings) do
-			tuples[i] = {f:lower():gsub('0*(%d+)%.?(%d*)', padnum), f}
+			tuples[i] = {f:lower():gsub('0*(%d+)', padnum), f}
 		end
 		table.sort(tuples, function(a, b)
 			return a[1] == b[1] and #b[2] < #a[2] or a[1] < b[1]
@@ -296,8 +295,9 @@ end
 function format_time(seconds, max_seconds)
 	local human = mp.format_time(seconds)
 	if options.time_precision > 0 then
-		local formatted = string.format('%.' .. options.time_precision .. 'f', math.abs(seconds) % 1)
-		human = human .. '.' .. string.sub(formatted, 3)
+		local ms = math.floor(math.abs(seconds) * 1000 + 0.5)
+		local frac = math.floor(ms % 1000 * 10 ^ options.time_precision / 1000)
+		human = human .. '.' .. string.format('%0' .. options.time_precision .. 'd', frac)
 	end
 	if max_seconds then
 		local trim_length = (max_seconds < 60 and 7 or (max_seconds < 3600 and 4 or 0))
@@ -988,7 +988,7 @@ function load_youtube_heatmap()
 			max_val = math.max(max_val, seg.value)
 		end
 		-- Normalize and clamp to avoid gaps in heatmap
-		local is_above = options.timeline_heatmap == 'above'
+		local is_above = options.timeline_heatmap == 'above' or options.timeline_style == 'slim'
 		local min_height, graph_height = 4, is_above and 40 or options.timeline_size
 		local max_norm_y = 1 - (min_height / graph_height)
 		local norm = {0, 1}
