@@ -13,7 +13,6 @@ thumbDir="$cacheDir/thumbnails"
 currentLink="$cacheDir/current_wallpaper"
 
 # Extras
-randomPreviewImage="$HOME/Pictures/black-hole.png"
 randomQueueFile="$cacheDir/random_queue.txt"
 shuffleMenu=true
 versionFile="$cacheDir/.cache_version"
@@ -150,7 +149,6 @@ apply_random() {
 # === DISPLAY ROFI MENU ===
 menu() {
   local pic filename name thumb
-  printf "%s\x00icon\x1f%s\n" "$randomChoice" "$randomPreviewImage"
   for pic in "${PICS[@]}"; do
     filename="${pic##*/}"
     name="${filename%.*}"
@@ -214,14 +212,7 @@ openMenu() {
   # Empty or negative means ESC / nothing selected
   [[ -z "$choice_index" || "$choice_index" -lt 0 ]] && exit 0
 
-  # Index 0 is the "Random" entry; wallpapers start at index 1
-  if [[ "$choice_index" -eq 0 ]]; then
-    apply_random
-    exit 0
-  fi
-
-  local real_index=$((choice_index - 1))
-  local selected_file="${PICS[$real_index]:-}"
+  local selected_file="${PICS[$choice_index]:-}"
 
   if [[ -n "$selected_file" && -f "$selected_file" ]]; then
     executeCommand "$selected_file"
@@ -247,8 +238,6 @@ load_pics() {
     notify-send -u critical "Wallpaper Selector" "No wallpapers found in $wallpaperDir"
     exit 1
   fi
-
-  randomChoice="[${#PICS[@]}] Random"
 
   rofiCommand=(
     rofi
