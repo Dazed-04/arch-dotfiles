@@ -1,1 +1,26 @@
-LIBSEAT_BACKEND=logind
+export LIBSEAT_BACKEND=logind
+
+# Cursor (XCursor is read by all toolkits, not just Hyprland)
+export XCURSOR_THEME=BreezeX-RosePine-Linux
+export XCURSOR_SIZE=27
+
+# Hybrid graphics: Intel video decoding, Intel Vulkan, Mesa EGL
+export LIBVA_DRIVER_NAME=iHD
+export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/intel_icd.json
+export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+# export __GLX_VENDOR_LIBRARY_NAME=nvidia
+# export GBM_BACKEND=nvidia-drm
+# export NVD_BACKEND=direct
+
+# Disable GSYNC
+export __GL_GSYNC_ALLOWED=0
+
+# Electron: native Wayland
+export ELECTRON_OZONE_PLATFORM_HINT=auto
+
+# OBS Wayland support
+export OBS_USE_EGL=1
+
+# Qt
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_QUICK_CONTROLS_STYLE=Fusion

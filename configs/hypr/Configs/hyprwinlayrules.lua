@@ -9,6 +9,13 @@
 local glass = "0.7 0.7"
 local soft = "0.8 0.8"
 
+-- Border on every floating window (global border_size stays 0, so tiled windows get none)
+hl.window_rule({
+	name = "border-floating",
+	match = { float = true },
+	border_size = 2,
+})
+
 -- Floating, centered, decorated window. `extra` adds to or overrides the defaults.
 local function float_center(name, match, size, extra)
 	local rule = { name = name, match = match, float = true, center = true, decorate = true, size = size }
@@ -122,14 +129,12 @@ hl.window_rule({
 	size = { 1000, 800 },
 	center = true,
 	decorate = true,
-	opacity = soft,
 })
 
 -- Rnote only gets opacity
 hl.window_rule({
 	name = "rnote-opacity",
 	match = { initial_class = "com.github.flxzt.rnote" },
-	opacity = soft,
 })
 
 -- Calculator
@@ -138,7 +143,7 @@ hl.window_rule({
 	match = { initial_class = "qalculate-gtk", title = "Qalculate!" },
 	float = true,
 	decorate = true,
-	size = { 400, 400 },
+	size = { 600, 400 },
 	opacity = soft,
 })
 
@@ -214,14 +219,6 @@ hl.window_rule({
 hl.window_rule({
 	name = "float-abdownload-menu",
 	match = { class = "com-abdownloadmanager-desktop-AppKt" },
-	float = true,
-	center = true,
-	size = { 1200, 800 },
-})
-
-hl.window_rule({
-	name = "tile-abdownload-app",
-	match = { class = "com-abdownloadmanager-desktop-AppKt", title = "AB Download Manager" },
 	float = true,
 	center = true,
 	size = { 1200, 800 },
@@ -322,6 +319,7 @@ hl.window_rule({
 		pin = false,
 	},
 	no_focus = true,
+	border_size = 0,
 })
 
 -- Hyprland-run
@@ -341,7 +339,7 @@ hl.window_rule({
 	match = { class = "^hyprpolkitagent$" },
 	float = true,
 	center = true,
-	size = { 500, 340 },
+	size = { 500, 448 },
 	animation = "slide bottom",
 	opacity = glass,
 })

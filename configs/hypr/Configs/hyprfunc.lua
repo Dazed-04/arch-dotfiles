@@ -30,6 +30,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("uwsm-app -- wl-paste --type text --watch cliphist store") -- Stores only text data
 	hl.exec_cmd("uwsm-app -- wl-paste --type image --watch cliphist store") -- Stores only image data
 	hl.exec_cmd("sleep 2 && uwsm-app -- keepassxc")
+	hl.exec_cmd("/etc/acpi/autorefresh.sh")
 	-- hl.exec_cmd("uwsm-app -- swaync")
 end)
 
@@ -124,34 +125,43 @@ hl.config({
 -- hl.env("XDG_SESSION_TYPE", "wayland")
 -- hl.env("XDG_SESSION_DESKTOP", "Hyprland")
 
+----------------------------
+--- Managed by uwsm/env ----
+----------------------------
+
 -- Cursor and theme
-hl.env("HYPRCURSOR_THEME", "rose-pine-hyprcursor")
-hl.env("XCURSOR_THEME", "BreezeX-RosePine-Linux")
-hl.env("XCURSOR_SIZE", "27")
-hl.env("HYPRCURSOR_SIZE", "27")
+-- hl.env("XCURSOR_THEME", "BreezeX-RosePine-Linux")
+-- hl.env("XCURSOR_SIZE", "27")
 
 -- Hybrid graphics: Intel video decoding, NVIDIA for GLX
-hl.env("LIBVA_DRIVER_NAME", "iHD")
-hl.env("VK_DRIVER_FILES", "/usr/share/vulkan/icd.d/intel_icd.json")
-hl.env("__EGL_VENDOR_LIBRARY_FILENAMES", "/usr/share/glvnd/egl_vendor.d/50_mesa.json")
--- hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
--- hl.env("GBM_BACKEND", "nvidia-drm")
-
--- Force Aquamarine to exclusively use the DRM KMS backend
-hl.env("AQ_FORCE_BACKEND", "drm")
-
--- Native Wayland support for most Electron apps
-hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
+-- hl.env("LIBVA_DRIVER_NAME", "iHD")
+-- hl.env("VK_DRIVER_FILES", "/usr/share/vulkan/icd.d/intel_icd.json")
+-- hl.env("__EGL_VENDOR_LIBRARY_FILENAMES", "/usr/share/glvnd/egl_vendor.d/50_mesa.json")
+-- -- hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+-- -- hl.env("GBM_BACKEND", "nvidia-drm")
 
 -- Hardware video acceleration
--- hl.env("NVD_BACKEND", "direct")
+-- -- hl.env("NVD_BACKEND", "direct")
 
 -- Disable GSYNC
-hl.env("__GL_GSYNC_ALLOWED", "0")
+-- hl.env("__GL_GSYNC_ALLOWED", "0")
 
--- Qt style override
-hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
-hl.env("QT_STYLE_OVERRIDE", "kvantum")
+-- Native Wayland support for most Electron apps
+-- hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
 -- OBS Wayland support
-hl.env("OBS_USE_EGL", "1")
+-- hl.env("OBS_USE_EGL", "1")
+
+-- Qt style override
+-- hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
+-- hl.env("QT_QUICK_CONTROLS_STYLE", "Fusion")
+----------------------------------
+-- Managed by uwsm/env-hyprland --
+----------------------------------
+
+-- Force Aquamarine to exclusively use the DRM KMS backend (managed by uwsm/env-hyprland)
+-- hl.env("AQ_FORCE_BACKEND", "drm")
+
+-- Cursor and theme
+-- hl.env("HYPRCURSOR_THEME", "rose-pine-hyprcursor")
+-- hl.env("HYPRCURSOR_SIZE", "27")

@@ -53,7 +53,12 @@ return {
             if bufnr ~= -1 then
               local hl = tonumber(cnt) > 0 and "CoverageCovered" or "CoverageUncovered"
               for lnum = tonumber(sl), tonumber(el) do
-                vim.api.nvim_buf_add_highlight(bufnr, ns, hl, lnum - 1, 0, -1)
+                vim.api.nvim__buf_debug_extmark(bufnr, ns, lnum - 1, 0, {
+                  end_row = lnum - 1,
+                  end_col = 0,
+                  hl_group = hl,
+                  hl_eol = true,
+                })
               end
             end
           end

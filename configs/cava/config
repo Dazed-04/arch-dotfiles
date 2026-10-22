@@ -20,14 +20,14 @@ bit_format = 16bit
 # Using Matugen to create a dynamic gradient
 gradient = 1
 gradient_count = 8
-gradient_color_1 = '#ffb4aa'
-gradient_color_2 = '#73342c'
-gradient_color_3 = '#e7bdb7'
-gradient_color_4 = '#5d3f3b'
-gradient_color_5 = '#dfc38c'
-gradient_color_6 = '#574419'
+gradient_color_1 = '#ffb2b6'
+gradient_color_2 = '#723339'
+gradient_color_3 = '#e6bdbe'
+gradient_color_4 = '#5c3f41'
+gradient_color_5 = '#e7c08e'
+gradient_color_6 = '#5c421a'
 gradient_color_7 = '#ffb4ab'
-gradient_color_8 = '#a08c8a'
+gradient_color_8 = '#9f8c8c'
 
 [smoothing]
 noise_reduction = 77

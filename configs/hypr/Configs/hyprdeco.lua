@@ -14,7 +14,7 @@ M.look = {
 		border_size = 0,
 
 		col = {
-			-- active_border = colors.active_border,
+			active_border = colors.active_border,
 			inactive_border = colors.inactive_border,
 		},
 

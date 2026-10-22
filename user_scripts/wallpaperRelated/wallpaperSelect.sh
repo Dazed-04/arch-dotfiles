@@ -172,7 +172,7 @@ executeCommand() {
 
   # 3. Generate color palette via Matugen
   local matugen_output clean_error
-  if ! matugen_output=$(matugen --quiet --mode dark --fallback-color "#fa94c3" --source-color-index 0 image "$wp" 2>&1); then
+  if ! matugen_output=$(matugen --quiet --mode dark --fallback-color "#fa94c3" --prefer saturation image "$wp" 2>&1); then
     clean_error=$(printf "%s" "$matugen_output" | sed 's/\x1b\[[0-9;]*m//g')
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $clean_error" >>"$cacheDir/matugen_error.log"
     notify-send -u critical -t 0 "⚠️ Matugen Error" "$clean_error"
