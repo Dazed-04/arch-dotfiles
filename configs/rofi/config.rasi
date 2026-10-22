@@ -6,15 +6,11 @@
 /* ---- Configuration ---- */
 
 configuration {
-	  modi:                       "drun,run,filebrowser";
+	  modi:                       "drun,window";
     show-icons:                 true;
     terminal:                   "kitty"; 
     display-drun:               "Apps";
     display-run:                "Run";
-    display-filebrowser:        "Files";
-    filebrowser {
-        command:                "kitty --class rofi-nvim -e nvim";
-    }
     display-window:             "Win";
 	  drun-display-format:        "{name}";
 	  hover-select:               true;
