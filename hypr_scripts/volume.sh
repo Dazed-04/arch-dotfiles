@@ -1,146 +1,132 @@
 #!/bin/bash
+# Volume and microphone control with notifications.
+# Usage: volume.sh [--get | --inc | --dec | --toggle | --toggle-mic | --get-icon |
+#                   --get-mic-icon | --mic-inc | --mic-dec]
 
 iDIR="$HOME/.config/swaync/icons"
 sDIR="$HOME/.config/hypr/scripts"
+MIC=(--default-source) # pamixer flag for the microphone; the speakers need none
 
-# Get Volume
-get_volume() {
-  volume=$(pamixer --get-volume)
-  if [[ "$volume" -eq "0" ]]; then
+# "Muted" when muted (or at 0), otherwise "NN%". Takes an optional pamixer device flag.
+get_level() {
+  local v
+  v=$(pamixer "$@" --get-volume) || return 1
+  if [[ $v -eq 0 || $(pamixer "$@" --get-mute) == true ]]; then
     echo "Muted"
   else
-    echo "$volume%"
+    echo "$v%"
   fi
 }
 
-# Get icons
-get_icon() {
-  current=$(get_volume)
-  if [[ "$current" == "Muted" ]]; then
+is_muted() { [[ $(pamixer "$@" --get-mute) == true ]]; }
+
+# Icon for a level as printed by get_level
+volume_icon() {
+  local n=${1%\%}
+  if [[ $1 == Muted ]]; then
     echo "$iDIR/volume-mute.png"
-  elif [[ "${current%\%}" -le 30 ]]; then
+  elif ((n <= 30)); then
     echo "$iDIR/volume-low.png"
-  elif [[ "${current%\%}" -le 60 ]]; then
+  elif ((n <= 60)); then
     echo "$iDIR/volume-mid.png"
   else
     echo "$iDIR/volume-high.png"
   fi
 }
 
-# Notify
-notify_user() {
-  if [[ "$(get_volume)" == "Muted" ]]; then
-    notify-send -e -h string:x-canonical-private-synchronous:volume_notif -u low -i "$(get_icon)" "Volume: Muted"
-  else
-    notify-send -e -h int:value:"$(get_volume | sed 's/%//')" -h string:x-canonical-private-synchronous:volume_notif -u low -i "$(get_icon)" "VOLUME: $(get_volume)"
-    "$sDIR/sounds.sh" --volume
-  fi
-}
-
-# Increase Volume
-inc_volume() {
-  if [ "$(pamixer --get-mute)" == "true" ]; then
-    toggle_mute
-  else
-    pamixer -i 5 --allow-boost --set-limit 150 && notify_user
-  fi
-}
-
-# Decrease Volume
-dec_volume() {
-  if [ "$(pamixer --get-mute)" == "true" ]; then
-    toggle_mute
-  else
-    pamixer -d 5 && notify_user
-  fi
-}
-
-# Toggle Mute
-toggle_mute() {
-  if [ "$(pamixer --get-mute)" == "false" ]; then
-    pamixer -m && notify-send -e -u low -i "$iDIR/volume-mute.png" "Volume Switched OFF"
-  elif [ "$(pamixer --get-mute)" == "true" ]; then
-    pamixer -u && notify-send -e -u low -i "$(get_icon)" "VOLUME Switched ON"
-  fi
-}
-
-# Toggle Mic
-toggle_mic() {
-  if [ "$(pamixer --default-source --get-mute)" == "false" ]; then
-    pamixer --default-source -m && notify-send -e -u low -i "$iDIR/microphone-mute.png" "Microphone Switched OFF"
-  elif [ "$(pamixer --default-source --get-mute)" == "true" ]; then
-    pamixer -u --default-source u && notify-send -e -u low -i "$iDIR/microphone.png" "Microphone Switched ON"
-  fi
-}
-# Get Mic Icon
-get_mic_icon() {
-  current=$(pamixer --default-source --get-volume)
-  if [[ "$current" -eq "0" ]]; then
+mic_icon() {
+  local level=${1:-$(get_level "${MIC[@]}")}
+  if [[ $level == Muted ]]; then
     echo "$iDIR/microphone-mute.png"
   else
     echo "$iDIR/microphone.png"
   fi
 }
 
-# Get Microphone Volume
-get_mic_volume() {
-  volume=$(pamixer --default-source --get-volume)
-  if [[ "$volume" -eq "0" ]]; then
-    echo "Muted"
+# --- Speakers ---------------------------------------------------------------
+
+notify_user() {
+  local level
+  level=$(get_level)
+  if [[ $level == Muted ]]; then
+    notify-send -e -h string:x-canonical-private-synchronous:volume_notif -u low -i "$(volume_icon "$level")" "Volume: Muted"
   else
-    echo "$volume%"
+    notify-send -e -h int:value:"${level%\%}" -h string:x-canonical-private-synchronous:volume_notif -u low -i "$(volume_icon "$level")" "VOLUME: $level"
+    # In the background, so a held key isn't slowed down by the sound playing
+    "$sDIR/sounds.sh" --volume >/dev/null 2>&1 &
+    disown
   fi
 }
 
-# Notify for Microphone
-notify_mic_user() {
-  # Get the raw number for the progress bar
-  raw_volume=$(pamixer --default-source --get-volume)
-  # Get the "Muted" or "XX%" string for the text label
-  display_volume=$(get_mic_volume)
-  icon=$(get_mic_icon)
-
-  # Use raw_volume for the 'int:value' so it never fails to parse
-  notify-send -e -h int:value:"$raw_volume" -h "string:x-canonical-private-synchronous:volume_notif" -u low -i "$icon" "Mic-Level: $display_volume"
+inc_volume() {
+  if is_muted; then
+    toggle_mute
+  else
+    pamixer -i 5 --allow-boost --set-limit 150 && notify_user
+  fi
 }
 
-# Increase MIC Volume
+dec_volume() {
+  if is_muted; then
+    toggle_mute
+  else
+    pamixer -d 5 && notify_user
+  fi
+}
+
+toggle_mute() {
+  if is_muted; then
+    pamixer -u && notify-send -e -u low -i "$(volume_icon "$(get_level)")" "VOLUME Switched ON"
+  else
+    pamixer -m && notify-send -e -u low -i "$iDIR/volume-mute.png" "Volume Switched OFF"
+  fi
+}
+
+# --- Microphone -------------------------------------------------------------
+
+notify_mic_user() {
+  local level raw
+  level=$(get_level "${MIC[@]}")
+  raw=${level%\%} # number for the progress bar
+  [[ $level == Muted ]] && raw=0
+  notify-send -e -h int:value:"$raw" -h string:x-canonical-private-synchronous:volume_notif -u low -i "$(mic_icon "$level")" "Mic-Level: $level"
+}
+
+toggle_mic() {
+  if is_muted "${MIC[@]}"; then
+    pamixer "${MIC[@]}" -u && notify-send -e -u low -i "$iDIR/microphone.png" "Microphone Switched ON"
+  else
+    pamixer "${MIC[@]}" -m && notify-send -e -u low -i "$iDIR/microphone-mute.png" "Microphone Switched OFF"
+  fi
+}
+
 inc_mic_volume() {
-  if [ "$(pamixer --default-source --get-mute)" == "true" ]; then
+  if is_muted "${MIC[@]}"; then
     toggle_mic
   else
-    pamixer --default-source -i 5 && notify_mic_user
+    pamixer "${MIC[@]}" -i 5 && notify_mic_user
   fi
 }
 
-# Decrease MIC Volume
 dec_mic_volume() {
-  if [ "$(pamixer --default-source --get-mute)" == "true" ]; then
-    toggle-mic
+  if is_muted "${MIC[@]}"; then
+    toggle_mic
   else
-    pamixer --default-source -d 5 && notify_mic_user
+    pamixer "${MIC[@]}" -d 5 && notify_mic_user
   fi
 }
 
-# Execute accordingly
-if [[ "$1" == "--get" ]]; then
-  get_volume
-elif [[ "$1" == "--inc" ]]; then
-  inc_volume
-elif [[ "$1" == "--dec" ]]; then
-  dec_volume
-elif [[ "$1" == "--toggle" ]]; then
-  toggle_mute
-elif [[ "$1" == "--toggle-mic" ]]; then
-  toggle_mic
-elif [[ "$1" == "--get-icon" ]]; then
-  get_icon
-elif [[ "$1" == "--get-mic-icon" ]]; then
-  get_mic_icon
-elif [[ "$1" == "--mic-inc" ]]; then
-  inc_mic_volume
-elif [[ "$1" == "--mic-dec" ]]; then
-  dec_mic_volume
-else
-  get_volume
-fi
+# --- Entry point ------------------------------------------------------------
+
+case "$1" in
+--get) get_level ;;
+--inc) inc_volume ;;
+--dec) dec_volume ;;
+--toggle) toggle_mute ;;
+--toggle-mic) toggle_mic ;;
+--get-icon) volume_icon "$(get_level)" ;;
+--get-mic-icon) mic_icon ;;
+--mic-inc) inc_mic_volume ;;
+--mic-dec) dec_mic_volume ;;
+*) get_level ;;
+esac

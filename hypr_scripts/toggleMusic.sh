@@ -11,11 +11,11 @@ is_running() {
 }
 
 if ! is_running; then
-  hyprctl dispatch exec "[workspace special:music silent] kitty --class rmpc -e rmpc"
+  hyprctl eval 'hl.dispatch(hl.dsp.exec_cmd("uwsm app -- kitty --class rmpc -e rmpc", { workspace = "special:music silent" }))'
   for _ in {1..20}; do # wait up to 2 s for the window to appear
     is_running && break
     sleep 0.1
   done
 fi
 
-hyprctl dispatch togglespecialworkspace music
+hyprctl eval 'hl.dispatch(hl.dsp.workspace.toggle_special("music"))'

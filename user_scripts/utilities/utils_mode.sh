@@ -62,8 +62,7 @@ case "$1" in
   ;;
 *"System Monitor"*)
   pkill rofi
-  hyprctl dispatch 'hl.dsp.exec_cmd("$HOME/.local/bin/myScripts/utilities/btop.sh")'
-  disown
+  hyprctl eval "hl.dispatch(hl.dsp.exec_cmd('$HOME/.local/bin/myScripts/utilities/btop.sh'))"
   ;;
 *"Power Saving"*)
   pkill rofi

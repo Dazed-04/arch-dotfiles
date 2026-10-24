@@ -1,24 +1,16 @@
 #!/bin/bash
-
-title=$(mpc current -f "%title%")
-artist=$(mpc current -f "%artist%")
-
-status=$(mpc status | awk 'NR==2 {print $1}')
-
-if [ "$status" == "[paused]" ]; then
-  icon="[Paused]"
-else
-  icon="[Playing]"
-fi
-
 case "$1" in
---title)
-  echo "$title"
-  ;;
---artist)
-  echo "$artist"
-  ;;
+--title) mpc current -f '%title%' ;;
+--artist) mpc current -f '%artist%' ;;
 --status)
-  echo "$icon"
+  case $(mpc status | awk 'NR==2 {print $1}') in
+  "[playing]") echo " [Playing]" ;;
+  "[paused]") echo " [Paused]" ;;
+  esac
+  ;;
+--line)
+  title=$(mpc current -f '%title%' 2>/dev/null)
+  artist=$(mpc current -f '%artist%' 2>/dev/null)
+  echo "${title}${artist:+ - $artist} $($0 --status)"
   ;;
 esac

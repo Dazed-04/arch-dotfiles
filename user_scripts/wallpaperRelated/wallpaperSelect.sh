@@ -181,20 +181,15 @@ executeCommand() {
   sleep 0.1
 
   # 4. Refresh Waybar and other components
-  if [[ -x "$HOME/.config/hypr/scripts/refresh.sh" ]]; then
-    "$HOME/.config/hypr/scripts/refresh.sh"
+  pkill -x waybar || true
+  if command -v uwsm-app >/dev/null 2>&1; then
+    uwsm-app -- waybar &
   else
-    pkill -x waybar || true
-    if command -v uwsm-app >/dev/null 2>&1; then
-      uwsm-app -- waybar &
-    else
-      waybar &
-    fi
-    disown || true
+    pkill -SIGUSR2 waybar
+  fi
 
-    if command -v swaync-client >/dev/null 2>&1; then
-      swaync-client -R -rs
-    fi
+  if command -v swaync-client >/dev/null 2>&1; then
+    swaync-client -R -rs
   fi
 }
 

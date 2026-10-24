@@ -24,7 +24,7 @@ case "$temp" in
 *"Neutral"*) t=5500 ;;
 *"Custom"*)
   t=$(rofi -dmenu -p "Enter temperature (1000-6500)" \
-    -theme "$HOME/.config/rofi/launcher-themes/utilitymenu.rasi")
+    -theme "$HOME/.config/rofi/launcher-themes/utility-menu.rasi")
   if ! [[ "$t" =~ ^[0-9]+$ ]] || [[ "$t" -lt 1000 ]] || [[ "$t" -gt 6500 ]]; then
     notify-send "Night Light" "Invalid temperature. Must be between 1000 and 6500."
     exit 1

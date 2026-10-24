@@ -1,52 +1,75 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Prints the path of a small cover image for the song MPD is playing.
+# Prints nothing (or $FALLBACK) when there is no art, so callers can handle it.
 
-# Config
-CACHE_DIR="$HOME/.cache/albumart"
-MUSIC_DIR="$HOME/Music" # Change to your MPD music root
+set -o pipefail
+
+MUSIC_DIR="${MUSIC_DIR:-$HOME/Music}" # must match music_directory in mpd.conf
+CACHE_DIR="${CACHE_DIR:-$HOME/.cache/albumart}"
+SIZE=256
+PER_ALBUM="${PER_ALBUM:-false}" # true = one cached image per album folder (fewer extractions)
+FALLBACK=""                     # optional image to print when a song has no art
+
 mkdir -p "$CACHE_DIR"
 
-# Get current song metadata and file path
-relative_file=$(mpc -f "%file%" current)
+no_art() {
+  [[ -n $FALLBACK && -f $FALLBACK ]] && printf '%s\n' "$FALLBACK"
+  exit 0
+}
 
-# Exit if nothing is playing
-if [ -z "$relative_file" ]; then
-  exit
+rel=$(mpc -f '%file%' current 2>/dev/null)
+[[ -n $rel ]] || exit 0 # nothing playing
+
+src="$MUSIC_DIR/$rel"
+[[ -f $src ]] || no_art # stream, or MUSIC_DIR doesn't match MPD's
+
+# Cache key: hash of the full path (or of the album folder), so two files with
+# the same name in different folders never share an image.
+if [[ $PER_ALBUM == true ]]; then key_src=${rel%/*}; else key_src=$rel; fi
+key=$(printf '%s' "$key_src" | md5sum | cut -d' ' -f1)
+out="$CACHE_DIR/$key.png"
+none="$CACHE_DIR/$key.none" # marker: "already tried, this song has no art"
+
+# Fast path: answer from the cache (also used again after taking the lock)
+answer_from_cache() {
+  if [[ -f $out ]]; then
+    printf '%s\n' "$out"
+    exit 0
+  fi
+  [[ -f $none ]] && no_art
+}
+answer_from_cache
+
+# Only one instance extracts at a time. Parallel callers (lockscreen, rmpc,
+# waybar polling) wait here, then find the finished image in the cache.
+exec 9>"$CACHE_DIR/.lock"
+flock 9
+answer_from_cache
+
+# Work in a private temp file, then move it into place atomically.
+tmp=$(mktemp "$CACHE_DIR/.tmp.XXXXXX") || exit 1
+trap 'rm -f "$tmp"' EXIT
+
+# 1. Embedded art. ffmpeg handles mp3/m4a/flac/ogg alike, so no per-format code.
+if ffmpeg -nostdin -loglevel error -i "$src" -map 0:v:0 -frames:v 1 -c copy -f image2pipe - 2>/dev/null |
+  magick - -auto-orient -strip -resize "${SIZE}x${SIZE}>" "PNG:$tmp" 2>/dev/null &&
+  [[ -s $tmp ]]; then
+  mv -f "$tmp" "$out"
+  printf '%s\n' "$out"
+  exit 0
 fi
 
-# Sanitize filename for caching
-metadata=$(basename "$relative_file" | tr '/:() ' '_')
-CACHE_FILE="$CACHE_DIR/$metadata.png"
-
-# Return cached image if exists
-if [ -f "$CACHE_FILE" ]; then
-  echo "$CACHE_FILE"
-  exit
+# 2. Cover file next to the song (cover/folder/front/albumart .jpg/.png)
+img=$(find "${src%/*}" -maxdepth 1 -type f \
+  -iregex '.*/\(cover\|folder\|front\|albumart\)\.\(jpe?g\|png\)' -print -quit 2>/dev/null)
+if [[ -n $img ]] &&
+  magick "${img}[0]" -auto-orient -strip -resize "${SIZE}x${SIZE}>" "PNG:$tmp" 2>/dev/null &&
+  [[ -s $tmp ]]; then
+  mv -f "$tmp" "$out"
+  printf '%s\n' "$out"
+  exit 0
 fi
 
-# Full path to the song file
-FULL_PATH="$MUSIC_DIR/$relative_file"
-TEMP_FILE="$CACHE_FILE.tmp.png"
-
-# Extract embedded album art
-EXT=$(echo "${relative_file##*.}" | tr '[:upper:]' '[:lower:]')
-case "$EXT" in
-m4a | mp4 | mp3 | aac)
-  ffmpeg -y -i "$FULL_PATH" -map 0:v:0 "$TEMP_FILE"
-  ;;
-flac)
-  metaflac --export-picture-to="$TEMP_FILE" "$FULL_PATH"
-  ;;
-*)
-  echo "Unsupported file type"
-  exit
-  ;;
-esac
-
-# Convert to proper png and check if exists
-if [ -f "$TEMP_FILE" ]; then
-  magick "$TEMP_FILE" -resize 256x256\> "$CACHE_FILE"
-  rm "$TEMP_FILE"
-  printf "%s" "$CACHE_FILE"
-else
-  echo "No album art found"
-fi
+# 3. Nothing found: remember it, so polling doesn't re-run ffmpeg every second.
+: >"$none"
+no_art
