@@ -157,7 +157,7 @@ hl.window_rule({
 	float = true,
 	pin = true,
 	size = { 400, 300 },
-	move = "monitor_w-400 monitor_h-300",
+	move = "monitor_w-405 monitor_h-305",
 })
 
 ----------------------

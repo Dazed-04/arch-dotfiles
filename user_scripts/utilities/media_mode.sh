@@ -1,50 +1,75 @@
 #!/bin/bash
-OBS_PASS=$(cat "${HOME}/.config/hypr/.obs-secret" | tr -d '[:space:]')
+# Rofi script mode "Media": OBS recording controls through obs-cmd (websocket).
+# No argument prints the entries for the current OBS state; a pick is run in the
+# background via "--exec" so rofi can close straight away.
+
+OBS_PASS=$(tr -d '[:space:]' <"$HOME/.config/hypr/.obs-secret" 2>/dev/null)
 WEBSOCKET="obsws://localhost:4455/${OBS_PASS}"
+PROJECTOR_RE='.*Projector.*' # Hyprland title regex of the OBS projector window
+
+obsc() { timeout 5 obs-cmd --websocket "$WEBSOCKET" "$@"; }
+
+close_projector() {
+  hyprctl eval "hl.dispatch(hl.dsp.window.close({ window = 'title:$PROJECTOR_RE' }))" >/dev/null 2>&1
+}
 
 open_preview() {
-  if hyprctl clients -j | jq -e '.[].title | select(contains("Projector.*"))' &>/dev/null; then
+  # Substring match: jq's contains() is not a regex, so the old "Projector.*" never matched
+  if hyprctl clients -j | jq -e 'any(.[]; .title | test("Projector"))' &>/dev/null; then
     return 0
   fi
-  obs-cmd --websocket "$WEBSOCKET" \
-    source-projector "Video Capture Device (V4L2)" --monitor-index '0'
+  obsc source-projector "Video Capture Device (V4L2)" --monitor-index '0'
 }
 
 get_obs_status() {
-  obs-cmd --websocket "$WEBSOCKET" recording status 2>/dev/null
+  obsc recording status 2>/dev/null
+}
+
+is_recording() {
+  grep -q "Active: true" <<<"$(get_obs_status)"
+}
+
+# After "recording stop" OBS still needs a moment to finalise the file
+wait_until_stopped() {
+  for _ in {1..20}; do
+    is_recording || return 0
+    sleep 0.25
+  done
+  return 1
 }
 
 start_recording() {
   local scene="$1"
   if ! pgrep -x obs >/dev/null; then
-    hyprctl dispatch 'hl.dsp.exec_cmd("obs", { workspace = "8 silent" })'
+    hyprctl eval 'hl.dispatch(hl.dsp.exec_cmd("uwsm app -- obs", { workspace = "8 silent" }))' >/dev/null
     notify-send "OBS" "Starting OBS, please wait..."
     sleep 2
     local retries=0
-    while ! obs-cmd --websocket "$WEBSOCKET" scene list &>/dev/null; do
+    while ! obsc scene list &>/dev/null; do
       sleep 2
-      ((retries++))
-      if [[ $retries -ge 10 ]]; then
-        notify-send "OBS" "Failed to connect to OBS WebSocket"
+      ((++retries >= 10)) && {
+        notify-send -u critical "OBS" "Failed to connect to OBS WebSocket"
         return 1
-      fi
+      }
     done
   fi
 
   # Don't restart recording if already recording
-  local status
-  status=$(get_obs_status)
-  if echo "$status" | grep -q "Active: true"; then
+  if is_recording; then
     notify-send "OBS" "Already recording"
     return 0
   fi
 
-  obs-cmd --websocket "$WEBSOCKET" scene switch "$scene"
-  obs-cmd --websocket "$WEBSOCKET" recording start
-  notify-send "OBS" "Recording started: $scene"
+  obsc scene switch "$scene"
+  if obsc recording start; then
+    notify-send "OBS" "Recording started: $scene"
+  else
+    notify-send -u critical "OBS" "Could not start recording"
+    return 1
+  fi
 
   # Only open preview for Camera & Mic scene
-  if [[ "$scene" == "Camera & Mic" ]]; then
+  if [[ $scene == "Camera & Mic" || $scene == "Recording and Camera" ]]; then
     (
       sleep 1
       open_preview
@@ -52,66 +77,46 @@ start_recording() {
   fi
 }
 
-if [[ "$1" == "--exec" ]]; then
+if [[ $1 == "--exec" ]]; then
   case "$2" in
-  "Screen Record") start_recording "Screen Record" ;;
-  "Recording and Camera") start_recording "Recording and Camera" ;;
-  "Camera & Mic") start_recording "Camera & Mic" ;;
+  "Screen Record" | "Recording and Camera" | "Camera & Mic") start_recording "$2" ;;
   "Pause Recording")
-    obs-cmd --websocket "$WEBSOCKET" recording pause
-    notify-send "OBS" "Recording Paused"
+    obsc recording pause && notify-send "OBS" "Recording Paused"
     ;;
   "Resume Recording")
-    obs-cmd --websocket "$WEBSOCKET" recording resume
-    notify-send "OBS" "Recording Resumed"
+    obsc recording resume && notify-send "OBS" "Recording Resumed"
     ;;
   "Stop Recording")
-    obs-cmd --websocket "$WEBSOCKET" recording stop >/dev/null 2>&1
-    hyprctl dispatch 'hl.dsp.window.close({ window = "title:Projector.*" })'
+    obsc recording stop >/dev/null 2>&1
+    wait_until_stopped
+    close_projector
     notify-send "OBS" "Recording Stopped & Saved"
     ;;
   "Close OBS")
-    obs-cmd --websocket "$WEBSOCKET" recording stop >/dev/null 2>&1
-    hyprctl dispatch 'hl.dsp.window.close({ window = "title:Projector.*" })'
-    sleep 0.5
-    pkill obs
+    obsc recording stop >/dev/null 2>&1
+    wait_until_stopped
+    close_projector
+    pkill -x obs
     notify-send "OBS" "Closed"
     ;;
   esac
   exit 0
 fi
 
-if [[ -z "$@" ]]; then
+if (($# == 0)); then
   if pgrep -x obs >/dev/null; then
     STATUS=$(get_obs_status)
-    if echo "$STATUS" | grep -q "Active: true"; then
-      if echo "$STATUS" | grep -q "Paused: true"; then
-        # Recording Paused
-        printf "%s\n" \
-          "󰐊 Resume Recording" \
-          "󰓛 Stop Recording" \
-          "󰹅 Close OBS"
+    if grep -q "Active: true" <<<"$STATUS"; then
+      if grep -q "Paused: true" <<<"$STATUS"; then
+        printf "%s\n" "󰐊 Resume Recording" "󰓛 Stop Recording" "󰹅 Close OBS"
       else
-        # Currently Recording
-        printf "%s\n" \
-          "󰏤 Pause Recording" \
-          "󰓛 Stop Recording" \
-          "󰹅 Close OBS"
+        printf "%s\n" "󰏤 Pause Recording" "󰓛 Stop Recording" "󰹅 Close OBS"
       fi
     else
-      # OBS Idle
-      printf "%s\n" \
-        "󰑋 Screen Record" \
-        "󰑋 Recording and Camera" \
-        "󰑋 Camera & Mic" \
-        "󰹅 Close OBS"
+      printf "%s\n" "󰑋 Screen Record" "󰑋 Recording and Camera" "󰑋 Camera & Mic" "󰹅 Close OBS"
     fi
   else
-    # OBS Closed
-    printf "%s\n" \
-      "󰑋  Screen Record" \
-      "󰑋  Recording and Camera" \
-      "󰑋  Camera & Mic"
+    printf "%s\n" "󰑋  Screen Record" "󰑋  Recording and Camera" "󰑋  Camera & Mic"
   fi
   exit 0
 fi
@@ -126,7 +131,7 @@ case "$1" in
 *"Close OBS"*) CMD="Close OBS" ;;
 esac
 
-if [[ -n "$CMD" ]]; then
+if [[ -n $CMD ]]; then
   nohup bash "$0" --exec "$CMD" >/dev/null 2>&1 &
   disown
 fi

@@ -1,123 +1,116 @@
 #!/bin/bash
-#Script to take Screenshots
+# Screenshot helper.
+# Usage: screenshot.sh [--smart | --region | --window | --fullscreen] [--edit]
+#   --edit opens the shot in satty instead of saving straight away. Default mode: --smart.
 
 SAVE_DIR="$HOME/Pictures/Screenshots"
 FILENAME="screenshot-$(date +'%Y%m%d-%H%M%S').png"
 FULL_PATH="$SAVE_DIR/$FILENAME"
 
-if [[ ! -d "$SAVE_DIR" ]]; then
-  notify-send "Screenshot directory does not exist: $SAVE_DIR" -u critical -t 3000
+# Pressing the keybind again cancels a running selection
+pkill -x slurp && exit 0
+
+mkdir -p "$SAVE_DIR" || {
+  notify-send -u critical -t 3000 "Cannot create screenshot directory: $SAVE_DIR"
   exit 1
-fi
-
-pkill slurp && exit 0
-
-MODE="${1:-smart}"
-EDIT="${2}"
-
-get_rectangles() {
-  local active_workspace
-  active_workspace=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .activeWorkspace.id')
-  hyprctl monitors -j | jq -r --arg ws "$active_workspace" '.[] | select(.activeWorkspace.id == ($ws | tonumber)) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"'
-  hyprctl clients -j | jq -r --arg ws "$active_workspace" '.[] | select(.workspace.id == ($ws | tonumber)) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'
 }
 
-# Screenshot modes
+MODE="${1:---smart}"
+EDIT="$2"
+PICKER_PID=
+
+# Freeze the screen while selecting. It must be gone before grim runs, so the overlay
+# is not captured; the trap covers cancelled/aborted runs.
+freeze() {
+  hyprpicker -n -r -z -d &
+  PICKER_PID=$!
+  sleep 0.1
+}
+unfreeze() {
+  [[ -n $PICKER_PID ]] && kill "$PICKER_PID" 2>/dev/null
+  PICKER_PID=
+}
+trap unfreeze EXIT
+
+# Rectangles of the focused workspace's monitor(s) and visible windows, "x,y WxH"
+get_rectangles() {
+  local ws
+  ws=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .activeWorkspace.id')
+  hyprctl monitors -j | jq -r --argjson ws "$ws" \
+    '.[] | select(.activeWorkspace.id == $ws) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"'
+  hyprctl clients -j | jq -r --argjson ws "$ws" \
+    '.[] | select(.mapped != false and .workspace.id == $ws) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'
+}
+
 case "$MODE" in
 --region)
-  hyprpicker -n -r -z -d &
-  PICKER_PID=$!
-  sleep 0.1
+  freeze
   SELECTION=$(slurp -w 0 -d 2>/dev/null)
-  kill $PICKER_PID 2>/dev/null
+  unfreeze
   ;;
 --window)
-  hyprpicker -n -r -z -d &
-  PICKER_PID=$!
-  sleep 0.1
+  freeze
   SELECTION=$(get_rectangles | slurp -w 0 -d -r 2>/dev/null)
-  kill $PICKER_PID 2>/dev/null
+  unfreeze
   ;;
 --fullscreen)
-  SELECTION=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"')
+  SELECTION=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"')
   ;;
 --smart)
   RECTS=$(get_rectangles)
-  hyprpicker -n -r -z -d &
-  PICKER_PID=$!
-  sleep 0.1
-  SELECTION=$(echo "$RECTS" | slurp -w 0 -d 2>/dev/null)
-  kill $PICKER_PID 2>/dev/null
+  freeze
+  SELECTION=$(slurp -w 0 -d 2>/dev/null <<<"$RECTS")
+  unfreeze
 
-  # If the selection area is L*W < 20, assume trying to select whichever window or output
-  # it was inside of to prevent accidental 2px Screenshots
-  if [[ "$SELECTION" =~ ^([0-9]+),([0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]]; then
-    if ((BASH_REMATCH[3] * BASH_REMATCH[4] < 20)); then
-      click_x="${BASH_REMATCH[1]}"
-      click_y="${BASH_REMATCH[2]}"
-
-      while IFS= read -r rect; do
-        if [[ "$rect" =~ ^([0-9]+),([0-9]+)[[:space:]]([0-9]+)x([0-9]+) ]]; then
-          rect_x="${BASH_REMATCH[1]}"
-          rect_y="${BASH_REMATCH[2]}"
-          rect_width="${BASH_REMATCH[3]}"
-          rect_height="${BASH_REMATCH[4]}"
-
-          if ((click_x >= rect_x && click_x < rect_x + rect_width && click_y >= rect_y && click_y < rect_y + rect_height)); then
-            SELECTION="${rect_x},${rect_y} ${rect_width}x${rect_height}"
-            break
-          fi
+  # A tiny selection (area < 20, i.e. a click) means "the window or output under the
+  # click", to avoid accidental 2px screenshots. The smallest rectangle containing the
+  # click wins, so a window beats the monitor it sits on.
+  if [[ $SELECTION =~ ^(-?[0-9]+),(-?[0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]] &&
+    ((BASH_REMATCH[3] * BASH_REMATCH[4] < 20)); then
+    click_x=${BASH_REMATCH[1]}
+    click_y=${BASH_REMATCH[2]}
+    best_area=
+    while IFS= read -r rect; do
+      if [[ $rect =~ ^(-?[0-9]+),(-?[0-9]+)[[:space:]]([0-9]+)x([0-9]+) ]]; then
+        rx=${BASH_REMATCH[1]} ry=${BASH_REMATCH[2]} rw=${BASH_REMATCH[3]} rh=${BASH_REMATCH[4]}
+        area=$((rw * rh))
+        if ((click_x >= rx && click_x < rx + rw && click_y >= ry && click_y < ry + rh)) &&
+          { [[ -z $best_area ]] || ((area < best_area)); }; then
+          best_area=$area
+          SELECTION="$rx,$ry ${rw}x${rh}"
         fi
-      done <<<"$RECTS"
-    fi
+      fi
+    done <<<"$RECTS"
   fi
   ;;
 *)
-  echo "Usage: "
-  echo "--fullscreen #Fullscreen Screenshot"
-  echo "--region     #Capture a Region"
-  echo "--window     #Capture a window"
-  echo "--smart      #Smart screenshot"
-  echo "with --edit  #Edit using satty"
+  echo "Usage: $0 [--smart | --region | --window | --fullscreen] [--edit]"
+  echo "  --smart       region, or a click selects the window/output under it (default)"
+  echo "  --region      capture a region"
+  echo "  --window      capture a window"
+  echo "  --fullscreen  capture the focused monitor"
+  echo "  --edit        (second argument) edit with satty"
   exit 1
   ;;
 esac
 
-[ -z "$SELECTION" ] && exit 0
+[[ -z $SELECTION ]] && exit 0
 
-satty_cmd=(
-  env
-  __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
-  VK_DRIVER_FILES=/usr/share/vulkan/icd.d/intel_icd.json
-  GSK_RENDERER=ngl
-  satty
-  --filename -
-  --output-filename "$FULL_PATH"
-  --early-exit
-  --actions-on-enter save-to-clipboard
-  --save-after-copy
-  --copy-command 'wl-copy'
-)
-
-grim_cmd=(
-  grim
-  -g "$SELECTION"
-)
-
-case "$EDIT" in
---edit)
-  "${grim_cmd[@]}" - | "${satty_cmd[@]}"
-  kill "$PICKER_PID" 2>/dev/null
-  ;;
-*)
-  "${grim_cmd[@]}" "$FULL_PATH"
-  kill "$PICKER_PID" 2>/dev/null
-  if [ -f "$FULL_PATH" ]; then
-    wl-copy <"$FULL_PATH" &&
-      notify-send -i "$FULL_PATH" "📸 Screenshot Taken" "$FILENAME copied to clipboard."
-  else
-    notify-send -u critical "Error" "Failed to capture screenshot."
-    exit 1
-  fi
-  ;;
-esac
+if [[ $EDIT == --edit ]]; then
+  grim -g "$SELECTION" - | env \
+    __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json \
+    VK_DRIVER_FILES=/usr/share/vulkan/icd.d/intel_icd.json \
+    GSK_RENDERER=ngl \
+    satty --filename - \
+    --output-filename "$FULL_PATH" \
+    --early-exit \
+    --actions-on-enter save-to-clipboard \
+    --save-after-copy \
+    --copy-command 'wl-copy'
+elif grim -g "$SELECTION" "$FULL_PATH" && [[ -f $FULL_PATH ]]; then
+  wl-copy -t image/png <"$FULL_PATH" &&
+    notify-send -i "$FULL_PATH" "📸 Screenshot Taken" "$FILENAME copied to clipboard."
+else
+  notify-send -u critical "Error" "Failed to capture screenshot."
+  exit 1
+fi

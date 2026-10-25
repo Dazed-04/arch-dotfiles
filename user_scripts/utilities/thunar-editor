@@ -1,6 +1,6 @@
 #!/bin/bash
-# 1. Launch nvim with our unique class
+# Edit a file from Thunar in nvim, then hand focus back to Thunar.
 kitty --class thunar-nvim -e nvim "$@"
 
-# 2. Once nvim closes, use hyprctl to force focus back to Thunar
-hyprctl dispatch "hl.dsp.window.focus({ window = 'class:thunar' })"
+# ^thunar$ so it can never match thunar-nvim
+hyprctl eval "hl.dispatch(hl.dsp.window.focus({ window = 'class:^thunar$' }))" >/dev/null

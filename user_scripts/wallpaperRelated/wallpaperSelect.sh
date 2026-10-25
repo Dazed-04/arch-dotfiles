@@ -184,8 +184,6 @@ executeCommand() {
   pkill -x waybar || true
   if command -v uwsm-app >/dev/null 2>&1; then
     uwsm-app -- waybar &
-  else
-    pkill -SIGUSR2 waybar
   fi
 
   if command -v swaync-client >/dev/null 2>&1; then

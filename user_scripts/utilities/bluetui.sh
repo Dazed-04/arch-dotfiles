@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+# Toggle bluetui in a kitty window with class "bluetui"
+CLASS=bluetui
 
-if hyprctl clients | grep -q 'class: bluetui'; then
-  hyprctl dispatch "hl.dsp.window.close({ window = 'class:bluetui' })"
+if hyprctl clients -j | jq -e --arg c "$CLASS" 'any(.[]; .class == $c)' >/dev/null; then
+  hyprctl eval "hl.dispatch(hl.dsp.window.close({ window = 'class:$CLASS' }))" >/dev/null
 else
   rfkill unblock bluetooth
-  hyprctl dispatch "hl.dsp.exec_raw('kitty --class bluetui bluetui')"
+  setsid -f uwsm app -- kitty --class "$CLASS" bluetui >/dev/null 2>&1
 fi

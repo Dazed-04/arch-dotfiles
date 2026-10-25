@@ -1,17 +1,16 @@
 #!/bin/bash
-OBS_PASS=$(cat "$HOME/.config/hypr/.obs-secret")
+# Rofi script mode "Network": Wi-Fi / Bluetooth toggles and manager launchers.
 
-# Get dynamic labels
 wifi_status=$(nmcli radio wifi)
-bt_status=$(bluetoothctl show | grep "Powered:" | awk '{print $2}')
+bt_status=$(timeout 2 bluetoothctl show 2>/dev/null | awk '/Powered:/ {print $2}')
 
 wifi_toggle="󰤭  Turn Off WiFi"
-[[ "$wifi_status" != "enabled" ]] && wifi_toggle="󰤨  Turn On WiFi"
+[[ $wifi_status != "enabled" ]] && wifi_toggle="󰤨  Turn On WiFi"
 
 bt_toggle="󰂲  Turn Off Bluetooth"
-[[ "$bt_status" != "yes" ]] && bt_toggle="󰂯  Turn On Bluetooth"
+[[ $bt_status != "yes" ]] && bt_toggle="󰂯  Turn On Bluetooth"
 
-if [[ -z "$@" ]]; then
+if (($# == 0)); then
   printf "%s\n" \
     "$wifi_toggle" \
     "󰤨  Open WiFi Manager" \
@@ -22,33 +21,31 @@ fi
 
 case "$1" in
 *"Turn Off WiFi")
-  nmcli radio wifi off
-  notify-send "WiFi" "Disabled"
-  pkill rofi
+  pkill -x rofi
+  nmcli radio wifi off && notify-send "WiFi" "Disabled"
   ;;
 *"Turn On WiFi")
-  nmcli radio wifi on
-  notify-send "WiFi" "Enabled"
-  pkill rofi
+  pkill -x rofi
+  nmcli radio wifi on && notify-send "WiFi" "Enabled"
   ;;
 *"Open WiFi Manager")
-  pkill rofi
+  pkill -x rofi
   "$HOME/.local/bin/myScripts/utilities/wlctl.sh"
   ;;
 *"Turn Off Bluetooth")
-  bluetoothctl power off >/dev/null 2>&1
-  notify-send "Bluetooth" "Disabled"
-  pkill rofi
+  pkill -x rofi
+  bluetoothctl power off >/dev/null 2>&1 && notify-send "Bluetooth" "Disabled"
   ;;
 *"Turn On Bluetooth")
-  bluetoothctl power on >/dev/null 2>&1
-  notify-send "Bluetooth" "Enabled"
-  pkill rofi
+  pkill -x rofi
+  rfkill unblock bluetooth # power on fails while the radio is soft-blocked
+  bluetoothctl power on >/dev/null 2>&1 && notify-send "Bluetooth" "Enabled"
   ;;
 *"Open Bluetooth Manager")
-  pkill rofi
-  if [[ "$bt_status" != "yes" ]]; then
-    bluetoothctl power on
+  pkill -x rofi
+  if [[ $bt_status != "yes" ]]; then
+    rfkill unblock bluetooth
+    bluetoothctl power on >/dev/null 2>&1
     sleep 0.2
   fi
   "$HOME/.local/bin/myScripts/utilities/bluetui.sh"

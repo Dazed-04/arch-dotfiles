@@ -122,6 +122,13 @@ music_queue = [
   { run = '$HOME/.local/bin/myScripts/yazi/queue-music.sh %s', desc = "Add Queue" },
 ]
 
+#############################################
+# Add as next to current song in rmpc queue #
+#############################################
+music_insert = [
+  { run = '$HOME/.local/bin/myScripts/yazi/insert-music.sh %s', desc = "Play Next" },
+]
+
 #######################
 # Share via LocalSend #
 #######################
@@ -156,6 +163,7 @@ prepend_rules = [
   #########
   { url = "*.{mp3,flac,wav,m4a,ogg,opus}", use = [
     "music_opener",
+    "music_insert",
     "music_queue",
     "localsend_opt",
   ] },
@@ -176,6 +184,7 @@ prepend_rules = [
   ] },
   { mime = "audio/*", use = [
     "music_opener",
+    "music_insert",
     "music_queue",
     "localsend_opt",
   ] },
