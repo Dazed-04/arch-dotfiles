@@ -46,3 +46,6 @@ configs/waybar/configs/*
 !configs/waybar/configs/"[Top] wallust_new"
 configs/waybar/style/*
 !configs/waybar/style/"[Dark] Purpl.css"
+
+# Misc
+.luarc.json
