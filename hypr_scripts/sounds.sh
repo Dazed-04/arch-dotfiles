@@ -1,4 +1,5 @@
 #!/bin/bash
+# Plays a freedesktop theme sound. Usage: sounds.sh --screenshot | --volume | --notification | --error
 
 theme="freedesktop"
 mute=false
@@ -6,6 +7,8 @@ mute=false
 # Mute individual sounds here.
 muteScreenshots=false
 muteVolume=false
+muteNotifications=false
+muteErrors=false
 
 # Exit if the system sounds are muted.
 if [[ "$mute" = true ]]; then
@@ -13,25 +16,28 @@ if [[ "$mute" = true ]]; then
 fi
 
 # Choose the sound to play.
-if [[ "$1" == "--screenshot" ]]; then
-  if [[ "$muteScreenshots" = true ]]; then
-    exit 0
-  fi
+case "$1" in
+--screenshot)
+  [[ "$muteScreenshots" = true ]] && exit 0
   soundoption="screen-capture.*"
-elif [[ "$1" == "--volume" ]]; then
-  if [[ "$muteVolume" = true ]]; then
-    exit 0
-  fi
+  ;;
+--volume)
+  [[ "$muteVolume" = true ]] && exit 0
   soundoption="audio-volume-change.*"
-elif [[ "$1" == "--error" ]]; then
-  if [[ "$muteScreenshots" = true ]]; then
-    exit 0
-  fi
+  ;;
+--notification)
+  [[ "$muteNotifications" = true ]] && exit 0
+  soundoption="message-new-instant.*"
+  ;;
+--error)
+  [[ "$muteErrors" = true ]] && exit 0
   soundoption="dialog-error.*"
-else
-  echo -e "Available sounds: --screenshot, --volume, --error"
+  ;;
+*)
+  echo -e "Available sounds: --screenshot, --volume, --notification, --error"
   exit 0
-fi
+  ;;
+esac
 
 # Set the directory defaults for system sounds.
 if [ -d "/run/current-system/sw/share/sounds" ]; then
@@ -51,23 +57,18 @@ elif [ -d "$systemDIR/$theme" ]; then
 fi
 
 # Get the theme that it inherits.
-iTheme=$(cat "$sDIR/index.theme" | grep -i "inherits" | cut -d "=" -f 2)
+iTheme=$(grep -i "^inherits" "$sDIR/index.theme" 2>/dev/null | cut -d "=" -f 2)
 iDIR="$sDIR/../$iTheme"
 
 # Find the sound file and play it.
-sound_file=$(find $sDIR/stereo -name "$soundoption" -print -quit)
-if ! test -f "$sound_file"; then
-  sound_file=$(find $iDIR/stereo -name "$soundoption" -print -quit)
-  if ! test -f "$sound_file"; then
-    sound_file=$(find $userDIR/$defaultTheme/stereo -name "$soundoption" -print -quit)
-    if ! test -f "$sound_file"; then
-      sound_file=$(find $systemDIR/$defaultTheme/stereo -name "$soundoption" -print -quit)
-      if ! test -f "$sound_file"; then
-        echo "Error: Sound file not found."
-        exit 1
-      fi
-    fi
-  fi
+sound_file=""
+for dir in "$sDIR" "$iDIR" "$userDIR/$defaultTheme" "$systemDIR/$defaultTheme"; do
+  sound_file=$(find "$dir/stereo" -name "$soundoption" -print -quit 2>/dev/null)
+  [[ -f "$sound_file" ]] && break
+done
+if [[ ! -f "$sound_file" ]]; then
+  echo "Error: Sound file not found."
+  exit 1
 fi
 
 # pipewire priority, fallback pulseaudio

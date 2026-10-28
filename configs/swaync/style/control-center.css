@@ -8,7 +8,6 @@
 /*@define-color bg             alpha(@main-color, 0.1);*/
 @define-color bg alpha(@background, 0.4);
 
-
 * {
   color: @text;
 
@@ -36,7 +35,10 @@
 /* ------------------- Notifications ---------------------- */
 
 .control-center .notification-row .notification-background,
-.control-center .notification-row .notification-background .notification.critical {
+.control-center
+  .notification-row
+  .notification-background
+  .notification.critical {
   background-color: @background-alt;
   border: 2px solid @hover;
   border-radius: 6px;
@@ -44,37 +46,71 @@
   padding: 2px;
 }
 
-.control-center .notification-row .notification-background .notification.critical {
+.control-center
+  .notification-row
+  .notification-background
+  .notification.critical {
   border: 2px solid #a7091b;
   border-radius: 4px;
   margin: 0px 0px;
 }
 
-.control-center .notification-row .notification-background .notification.critical .summary {
+.control-center
+  .notification-row
+  .notification-background
+  .notification.critical
+  .summary {
   color: #a7091b;
 }
 
-.control-center .notification-row .notification-background .notification .notification-content {
+.control-center
+  .notification-row
+  .notification-background
+  .notification
+  .notification-content {
   margin: 6px;
   padding: 8px 6px 2px 2px;
 }
 
-.control-center .notification-row .notification-background .notification>*:last-child>* {
+.control-center
+  .notification-row
+  .notification-background
+  .notification
+  > *:last-child
+  > * {
   min-height: 3.4em;
 }
 
-.control-center .notification-row .notification-background .notification>*:last-child>* .notification-action {
+.control-center
+  .notification-row
+  .notification-background
+  .notification
+  > *:last-child
+  > *
+  .notification-action {
   background: alpha(@selected, 0.6);
   color: @text;
   border-radius: 6px;
   margin: 6px;
 }
 
-.control-center .notification-row .notification-background .notification>*:last-child>* .notification-action:hover {
+.control-center
+  .notification-row
+  .notification-background
+  .notification
+  > *:last-child
+  > *
+  .notification-action:hover {
   background: @selected;
 }
 
-.control-center .notification-row .notification-background .notification>*:last-child>* .notification-action:active {
+.control-center
+  .notification-row
+  .notification-background
+  .notification
+  > *:last-child
+  > *
+  .notification-action:active {
   background: @selected;
 }
 
@@ -92,7 +128,10 @@
   background-color: @selected;
 }
 
-.control-center .notification-row .notification-background .close-button:active {
+.control-center
+  .notification-row
+  .notification-background
+  .close-button:active {
   background-color: @selected;
 }
 
@@ -103,7 +142,7 @@ trough {
 }
 
 progressbar {
-  background-color: rgba(255, 255, 255, .1);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ------------ Notifications expanded-group -------------- */
@@ -111,7 +150,6 @@ progressbar {
 .notification-group {
   margin: 2px 8px 2px 8px;
   transition: background 0.15s ease-in-out;
-
 }
 
 .notification-group-headers {
@@ -141,13 +179,18 @@ progressbar {
   background: @hover;
 }
 
-.control-center .control-center-list .notification .notification-default-action:hover,
+.control-center
+  .control-center-list
+  .notification
+  .notification-default-action:hover,
 .control-center .control-center-list .notification .notification-action:hover {
   background: @hover;
   border-radius: 3px;
 }
 
-.notification-group.collapsed:hover .notification-row:not(:only-child) .notification {
+.notification-group.collapsed:hover
+  .notification-row:not(:only-child)
+  .notification {
   background: @hover;
   border-radius: 3px;
 }
@@ -183,72 +226,111 @@ progressbar {
   color: @main-color;
 }
 
-.widget-dnd>switch {
+.widget-dnd > switch {
   background: @background-alt;
   border-radius: 20px;
   box-shadow: none;
   padding: 3px;
 }
 
-.widget-dnd>switch:hover {
+.widget-dnd > switch:hover {
   background: @hover;
 }
 
-.widget-dnd>switch:checked {
+.widget-dnd > switch:checked {
   background: @selected;
 }
 
-.widget-dnd>switch:checked:hover {
+.widget-dnd > switch:checked:hover {
   background: @hover;
 }
 
-.widget-dnd>switch slider {
+.widget-dnd > switch slider {
   background: @text;
   border-radius: 20px;
 }
 
 /* -------------------- Music player ---------------------- */
 
-.widget-mpris {
-  background-color: transparent;
-  margin: 10px;
-  padding: 0px;
-  border-radius: 6px;
+/* Album art size. swaync's old "image-size" config key is deprecated; this CSS root
+   variable replaces it (named in /etc/xdg/swaync/configSchema.json). If it has no effect,
+   try the value without the unit:  --mpris-album-art-icon-size: 100; */
+:root {
+  --mpris-album-art-icon-size: 100px;
+  --notification-icon-size: 90px;
 }
 
-/* Background need *opacity 1* otherwise will turn into the album art blurred  */
+/* Nearly full width: the control center's own padding already leaves a gap on each
+   side, so only a few px of extra margin here. */
+.widget-mpris {
+  background-color: transparent;
+  margin: 6px 2px;
+  padding: 0px;
+  border-radius: 16px; /* rounds the blurred cover if it is drawn at this level */
+  overflow: hidden;
+}
+
+/* Darker overlay (0.6 -> 0.8) so text stays readable on busy album art.
+   Background need *opacity 1* otherwise will turn into the album art blurred */
 .widget-mpris-player {
-  border-radius: 6px;
-  padding: 14px;
-  background-color: alpha(@mpris-album-art-overlay, 0.6);
-  box-shadow: 1px 1px 5px rgba(0, 0, 0, .65);
+  border-radius: 16px;
+  overflow: hidden; /* clips the blurred cover to the rounded corners */
+  padding: 24px 18px; /* space around the art AND the text; keep it here, not as art margins */
+  min-height: 150px; /* overall height of the player */
+  background-color: alpha(@mpris-album-art-overlay, 0.8);
+  box-shadow: none;
 }
 
 .widget-mpris button {
-  color: alpha(@text, 0.6);
+  color: alpha(@text, 0.85);
+  padding: 6px 8px;
+  margin: 2px;
+  border-radius: 8px;
 }
 
 .widget-mpris button:hover {
   background: alpha(@main-color, 0.5);
   color: @background-alt;
-  border-radius: 3px;
 }
 
+/* The picture size comes from --mpris-album-art-icon-size above; the box just matches it.
+   margin: top right bottom left. More left = art moves right, more top = art moves down. */
 .widget-mpris-album-art {
-  border-radius: 8px;
+  /* "* { all: unset }" at the top of this file also unsets swaync's own icon size, so the
+     picture fell back to GTK's 16px default. Set it here explicitly. */
+  -gtk-icon-size: var(--mpris-album-art-icon-size, 100px);
+  border-radius: 12px;
+  overflow: hidden;
   min-height: 80px;
   min-width: 80px;
+  margin: 20px 0px 0px 18px;
   opacity: 1;
-  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.75);
+  box-shadow: none;
 }
 
+/* Full-strength text colour plus a soft dark shadow = readable on any cover */
 .widget-mpris-title {
-  font-weight: bold;
-  font-size: 1.10rem;
-  padding-bottom: 2px;
+  font-family: "Iosevka Nerd Font Propo";
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: @text;
+  text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.9);
+  padding: 14px 8px 2px 0px;
 }
 
 .widget-mpris-subtitle {
-  font-weight: normal;
-  font-size: 0.85rem;
+  font-family: "Iosevka Nerd Font Propo";
+  font-weight: 600; /* same as the title */
+  font-size: 1.15rem;
+  color: alpha(@text, 0.9);
+  text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.9);
+  padding: 0px 8px 10px 0px;
 }
+
+/* DEBUG: remove the comment markers around this block to outline each part, then
+   send a screenshot. Red = player, lime = art, cyan = title, yellow = subtitle.
+.widget-mpris-player { border: 1px solid red; }
+.widget-mpris-album-art { border: 1px solid lime; }
+.widget-mpris-title { border: 1px solid cyan; }
+.widget-mpris-subtitle { border: 1px solid yellow; }
+*/
