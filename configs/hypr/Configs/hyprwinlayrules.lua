@@ -88,7 +88,7 @@ hl.window_rule({
 	float = false,
 	center = true,
 	decorate = true,
-	opacity = glass,
+	opacity = "0.8 0.8",
 })
 
 ----------------------

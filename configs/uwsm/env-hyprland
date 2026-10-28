@@ -1,5 +1,5 @@
 # Hyprland-only: cursor and Aquamarine backend
-export AQ_DRM_DEVICES=/home/Dazed/.config/hypr/card-igpu
+export AQ_DRM_DEVICES=/dev/dri/card1
 export HYPRCURSOR_THEME=rose-pine-hyprcursor
 export HYPRCURSOR_SIZE=27
 export AQ_FORCE_BACKEND=drm
