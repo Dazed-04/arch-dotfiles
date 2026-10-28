@@ -1,55 +1,32 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+
+# Not while rmpc is the focused window
+active_class=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty')
+[[ $active_class == rmpc ]] && exit 0
 
 TMP_DIR="/tmp/rmpc"
 mkdir -p "$TMP_DIR"
-LRCLIB="https://lrclib.net"
 ALBUM_ART_PATH="$TMP_DIR/notification_cover"
 DEFAULT_ART_PATH="$TMP_DIR/default_album_art.jpg"
 
-# 1. Handle Album Art & Notification (Synchronous replaces old ones)
+# Escape text for notification markup (an "&" in "Simon & Garfunkel" would break it)
+esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"$1"; }
+
 rmpc albumart --output "$ALBUM_ART_PATH" || ALBUM_ART_PATH="$DEFAULT_ART_PATH"
-notify-send -i "$ALBUM_ART_PATH" -h string:x-canonical-private-synchronous:music-track \
-    "${TITLE^^}" "<b>$ARTIST</b>\n<i>$ALBUM</i>"
 
-# 2. Lyrics Logic
-if [ "$HAS_LRC" = "false" ]; then
-  mkdir -p "$(dirname "$LRC_FILE")"
-
-  # Attempt 1: Exact Match
-  RESP=$(curl -s -G -H "Lrclib-Client: rmpc-$VERSION" \
-    --data-urlencode "artist_name=$ARTIST" --data-urlencode "track_name=$TITLE" \
-    --data-urlencode "album_name=$ALBUM" "$LRCLIB/api/get")
-  LYRICS=$(echo "$RESP" | jq -r '.syncedLyrics // .plainLyrics // empty')
-
-  # Attempt 2: Fuzzy Search Fallback
-  if [ -z "$LYRICS" ] || [ "$LYRICS" = "null" ]; then
-    RESP=$(curl -s -G -H "Lrclib-Client: rmpc-$VERSION" \
-      --data-urlencode "q=$ARTIST $TITLE" "$LRCLIB/api/search")
-    LYRICS=$(echo "$RESP" | jq -r '.[0].syncedLyrics // .[0].plainLyrics // empty')
-  fi
-
-  # 3. Final Output or Placeholder
-  {
-    echo "[ar:$ARTIST]\n[al:$ALBUM]\n[ti:$TITLE]"
-    if [ -n "$LYRICS" ] && [ "$LYRICS" != "null" ]; then
-      echo "$LYRICS" | sed -E '/^\[(ar|al|ti):/d'
-      MSG="Downloaded lyrics for $TITLE"
-      LVL="info"
-    else
-      i=0
-      while [ $i -lt 300 ]; do
-        m=$(printf "%02d" $((i / 60)))
-        s=$(printf "%02d" $((i % 60)))
-        case $((i % 4)) in
-          0) echo "[$m:$s.00] ⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏" ;;
-          1) echo "[$m:$s.00] ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏ ⠋" ;;
-          2) echo "[$m:$s.00] ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏ ⠋ ⠙" ;;
-          3) echo "[$m:$s.00] ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏ ⠋ ⠙ ⠹" ;;
-        esac
-        i=$((i + 1))
-      done
-    fi
-  } > "$LRC_FILE"
-
-  rmpc remote --pid "$PID" indexlrc --path "$LRC_FILE"
+# Downloaded files often carry "Artist - Song" as the title tag. Drop that prefix so the
+# heading is just the song name (the artist is shown on the second line anyway).
+song=$TITLE
+if [[ -n $ARTIST && ${TITLE,,} == "${ARTIST,,} - "* ]]; then
+  song=${TITLE:$((${#ARTIST} + 3))}
 fi
+
+# Second line: "artist - album"; either part is left out when its tag is missing
+details=""
+[[ -n $ARTIST ]] && details="<b>$(esc "$ARTIST")</b>"
+[[ -n $ALBUM ]] && details+="${details:+ - }<i>$(esc "$ALBUM")</i>"
+
+# -a rmpc: notificationSound.sh keeps this app silent. The sync hint makes each new song
+# replace the previous popup instead of stacking.
+notify-send -a rmpc -i "$ALBUM_ART_PATH" -h string:x-canonical-private-synchronous:music-track \
+  "$(esc "${song^^}")" "$details"
