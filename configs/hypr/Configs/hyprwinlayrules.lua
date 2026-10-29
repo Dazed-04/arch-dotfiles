@@ -49,7 +49,7 @@ local small_panel = { "(monitor_w * 0.25)", "(monitor_h * 0.3)" }
 --- File managers ----
 ----------------------
 
-float_center("float-thunar", { initial_class = "thunar" }, { 1000, 700 }, { opacity = glass })
+float_center("float-thunar", { initial_class = "Thunar" }, { 1000, 700 }, { opacity = glass })
 float_center(
 	"float-thunar-bulk-rename",
 	{ initial_class = "thunar", title = "^(Bulk Rename).*" },

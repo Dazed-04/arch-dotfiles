@@ -155,11 +155,12 @@ hl.config({
 -- Qt style override
 -- hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 -- hl.env("QT_QUICK_CONTROLS_STYLE", "Fusion")
+
 ----------------------------------
 -- Managed by uwsm/env-hyprland --
 ----------------------------------
 
--- Force Aquamarine to exclusively use the DRM KMS backend (managed by uwsm/env-hyprland)
+-- Force Aquamarine to exclusively use the DRM KMS backend
 -- hl.env("AQ_FORCE_BACKEND", "drm")
 
 -- Cursor and theme

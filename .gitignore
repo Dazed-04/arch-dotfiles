@@ -3,6 +3,7 @@ configs/hypr/.current_wallpaper
 configs/hypr/.obs-secret
 configs/hypr/Configs/.harper-dictionary.txt
 configs/hypr/scripts/term_blur_state
+configs/rofi/.current_wallpaper
 
 # yt-x ignores
 configs/yt-x/*.json
@@ -49,4 +50,3 @@ configs/waybar/style/*
 
 # Misc
 .luarc.json
-configs/rofi/.current_wallpaper
