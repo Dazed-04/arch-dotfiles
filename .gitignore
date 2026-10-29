@@ -49,3 +49,4 @@ configs/waybar/style/*
 
 # Misc
 .luarc.json
+configs/rofi/.current_wallpaper

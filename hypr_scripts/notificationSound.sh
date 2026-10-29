@@ -4,13 +4,23 @@
 
 # ---- settings ---------------------------------------------------------------
 SOUNDS="$HOME/.config/hypr/scripts/sounds.sh"
-SOUND_ARGS=(--notification)                          # default: every notification makes this sound...
-CRITICAL_ARGS=(--error)                              # ...critical ones use this one
 SKIP_LOW=true                                        # low-urgency notifications (your OSD-style popups) stay silent
 SKIP_SUMMARY='^(VOLUME|Volume|Mic-Level|Microphone)' # volume.sh already plays its own sound
-# Silent senders. Anything not listed here (or named "*-silent") makes the default sound.
-# To silence a notify-send, give it an app name:  notify-send -a something-silent ...
-SKIP_APPS=(rmpc refresh-script)
+
+# Which sound plays. A name from the sound theme (ls /usr/share/sounds/freedesktop/stereo)
+# or the full path of your own file, e.g. "$HOME/.local/share/sounds/ping.ogg".
+DEFAULT_SOUND="device-added"
+CRITICAL_SOUND="dialog-error"
+
+# One line per app, keyed by app name (the -a of notify-send). Value = sound, or "none" for
+# silent. Apps not listed use DEFAULT_SOUND. Names ending in "-silent" are always silent.
+declare -A APP_SOUNDS=(
+  [rmpc]=none
+  [refresh - script]=none
+  # [Telegram]="message"
+  # [Thunderbird]="complete"
+  # [backup]="$HOME/.local/share/sounds/backup-done.ogg"
+)
 MIN_GAP_MS=400 # ignore notifications arriving within this time of the last sound
 # -----------------------------------------------------------------------------
 
@@ -34,9 +44,12 @@ urgency="${SWAYNC_URGENCY,,}"
 [[ $SKIP_LOW == true && $urgency == low ]] && exit 0
 [[ -n $SKIP_SUMMARY && $SWAYNC_SUMMARY =~ $SKIP_SUMMARY ]] && exit 0
 [[ $SWAYNC_APP_NAME == *-silent ]] && exit 0
-for app in "${SKIP_APPS[@]}"; do
-  [[ $SWAYNC_APP_NAME == "$app" ]] && exit 0
-done
+
+# Pick the sound: default, critical override, then the app's own entry
+sound=$DEFAULT_SOUND
+[[ $urgency == critical ]] && sound=$CRITICAL_SOUND
+[[ -n $SWAYNC_APP_NAME && -n ${APP_SOUNDS[$SWAYNC_APP_NAME]} ]] && sound=${APP_SOUNDS[$SWAYNC_APP_NAME]}
+[[ $sound == none ]] && exit 0
 
 # Debounce a burst of notifications into one sound
 stamp="$state_dir/notif-sound.last"
@@ -45,8 +58,4 @@ last=$(cat "$stamp" 2>/dev/null || echo 0)
 ((now - last < MIN_GAP_MS)) && exit 0
 echo "$now" >"$stamp"
 
-if [[ $urgency == critical ]]; then
-  "$SOUNDS" "${CRITICAL_ARGS[@]}"
-else
-  "$SOUNDS" "${SOUND_ARGS[@]}"
-fi
+"$SOUNDS" --sound "$sound"

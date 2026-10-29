@@ -1,5 +1,7 @@
 #!/bin/bash
 # Plays a freedesktop theme sound. Usage: sounds.sh --screenshot | --volume | --notification | --error
+#        sounds.sh --sound NAME   (any name from the theme, e.g. bell; see ls /usr/share/sounds/freedesktop/stereo)
+#        sounds.sh --sound FILE   (a path to your own .oga/.ogg/.wav/.mp3 file)
 
 theme="freedesktop"
 mute=false
@@ -33,8 +35,24 @@ case "$1" in
   [[ "$muteErrors" = true ]] && exit 0
   soundoption="dialog-error.*"
   ;;
+--sound)
+  [[ "$muteNotifications" = true ]] && exit 0
+  if [[ "$2" == */* ]]; then # a file path: play it directly
+    [[ -f "$2" ]] || {
+      echo "Error: $2 not found."
+      exit 1
+    }
+    pw-play "$2" || pa-play "$2"
+    exit
+  fi
+  [[ -n "$2" ]] || {
+    echo "Usage: $0 --sound NAME|FILE"
+    exit 1
+  }
+  soundoption="$2.*"
+  ;;
 *)
-  echo -e "Available sounds: --screenshot, --volume, --notification, --error"
+  echo -e "Available sounds: --screenshot, --volume, --notification, --error, --sound NAME|FILE"
   exit 0
   ;;
 esac
