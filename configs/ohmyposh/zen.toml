@@ -50,7 +50,7 @@ template = '{{ .Path }}'
 
 [blocks.segments.options]
 folder_icon = '....'
-home_icon = '~'
+home_icon = ' ~'
 max_depth = 3
 style = 'agnoster_short'
 
