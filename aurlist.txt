@@ -3,6 +3,7 @@ bibata-cursor-theme
 burpsuite
 downgrade
 dynamips
+f3
 gns3-gui
 gns3-server
 gowall

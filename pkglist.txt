@@ -2,6 +2,7 @@
 aarch64-linux-gnu-gcc
 acpid
 adw-gtk-theme
+alsa-utils
 ansible
 arch-audit
 ast-grep
@@ -89,6 +90,7 @@ man-pages
 mangohud
 matugen
 mediainfo
+mesa-utils
 mpc
 mpd-mpris
 mpv
@@ -117,6 +119,7 @@ perl-image-exiftool
 pipewire-pulse
 power-profiles-daemon
 powertop
+python-curl_cffi
 python-langchain
 python-mutagen
 python-pip
@@ -196,9 +199,11 @@ unrar
 unzip
 uwsm
 v4l2loopback-dkms
+valgrind
 virt-manager
 virt-viewer
 vulkan-intel
+vulkan-tools
 waybar
 wev
 wget
