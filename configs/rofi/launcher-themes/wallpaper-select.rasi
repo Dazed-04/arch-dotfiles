@@ -131,6 +131,7 @@ element-icon {
     cursor:                      inherit;
     expand:                      true;
     padding:                     0px; 
+    background-color:            transparent;
     horizontal-align:            0.5;
     vertical-align:              0.5;
 }

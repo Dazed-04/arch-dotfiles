@@ -58,7 +58,7 @@
       "type": "terminal",
     },
     {
-      "key": "│ {#33} shell    {#keys}│",
+      "key": "│ {#35} shell    {#keys}│",
       "type": "shell",
     },
     {
@@ -72,7 +72,7 @@
       "format": "---",
     },
     {
-      "key": "│ {#34} kernel   {#keys}│",
+      "key": "│ {#32} kernel   {#keys}│",
       "type": "kernel",
     },
     {
@@ -87,19 +87,24 @@
       "hideType": "integrated",
     },
     {
-      "key": "│ {#34}󰇄 igpu     {#keys}│",
+      "key": "│ {#35}󰇄 igpu     {#keys}│",
       "type": "gpu",
       "detectionMethod": "pci",
       "hideType": "discrete",
     },
     {
-      "key": "│ {#33} memory   {#keys}│",
+      "key": "│ {#32} memory   {#keys}│",
       "type": "memory",
     },
     {
-      "key": "│ {#31}󰉉 disk     {#keys}│",
+      "key": "│ {#33}󰉉 asmodeus {#keys}│",
       "type": "disk",
       "folders": "/",
+    },
+    {
+      "key": "│ {#31}󰉉 games    {#keys}│",
+      "type": "disk",
+      "folders": "/mnt/games",
     },
     {
       "key": "│ {#35}󰩟 network  {#keys}│",

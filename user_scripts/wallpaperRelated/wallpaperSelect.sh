@@ -17,7 +17,7 @@ randomQueueFile="$cacheDir/random_queue.txt"
 shuffleMenu=true
 versionFile="$cacheDir/.cache_version"
 # Bump this whenever the thumbnail naming/size scheme changes, so old caches rebuild
-CACHE_VERSION=2
+CACHE_VERSION=3
 
 mkdir -p "$thumbDir"
 
@@ -60,7 +60,7 @@ generate_thumbnails() {
     [[ -f "$thumb" && "$thumb" -nt "$pic" ]] && exit 0
 
     # [0] picks the first frame of GIFs (harmless for other formats)
-    magick "${pic}[0]" -auto-orient -thumbnail "400x500^" -gravity center -extent 400x500 "$thumb" 2>/dev/null || rm -f "$thumb"
+    magick "${pic}[0]" -auto-orient -thumbnail "380x520^" -gravity center -extent 380x520 "$thumb" 2>/dev/null || rm -f "$thumb"
   ' _ || true
 }
 

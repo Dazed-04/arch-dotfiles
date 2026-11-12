@@ -29,6 +29,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("uwsm-app -- waybar")
 	hl.exec_cmd("uwsm-app -- wl-paste --type text --watch cliphist store") -- Stores only text data
 	hl.exec_cmd("uwsm-app -- wl-paste --type image --watch cliphist store") -- Stores only image data
+	hl.exec_cmd("systemctl start --no-block nvidia-rtd3-rebind.service")
 	hl.exec_cmd("sleep 2 && uwsm-app -- keepassxc")
 	hl.exec_cmd("/etc/acpi/autorefresh.sh")
 	-- hl.exec_cmd("uwsm-app -- swaync")
